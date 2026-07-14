@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CLIENT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(CLIENT)
+  createdAt    DateTime @default(now())
+
+  // Fields only relevant when role = CLIENT
+  nextMeetingAt DateTime?
+  zoomLink      String?
+
+  notesAsClient  Note[]     @relation("ClientNotes")
+  notesAsAuthor  Note[]     @relation("AuthorNotes")
+  wins           Win[]
+  resources      Resource[]
+  sentMessages   Message[]  @relation("SentMessages")
+  threadMessages Message[]  @relation("ClientThread")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  client   User   @relation("ClientNotes", fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  author   User   @relation("AuthorNotes", fields: [authorId], references: [id])
+  authorId String
+}
+
+model Win {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+}
+
+model Resource {
+  id          String   @id @default(cuid())
+  title       String
+  url         String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+}
+
+// Every message belongs to exactly one client's thread. The sender may be
+// that client, or one of the coaches (Michael / Ben) replying into it.
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id])
+  senderId String
+
+  client   User   @relation("ClientThread", fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+}

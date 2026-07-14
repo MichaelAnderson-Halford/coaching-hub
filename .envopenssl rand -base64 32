@@ -1,0 +1,10 @@
+
+# Postgres connection string. Works with Neon, Supabase, Railway, RDS, etc.
+DATABASpostgresql://neondb_owner:npg_iEH0BPzZj1nY@ep-young-sky-at2z1enk-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=requirepostgresql://neondb_owner:npg_iEH0BPzZj1nY@ep-young-sky-at2z1enk-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=requir
+eE_URL="postgresql://user:password@host:5432/coaching_hub?sslmode=require"
+
+# Generate with: openssl rand -base64 32
+NEXTAUTH_SECRET="replace-with-a-random-32-byte-secret"
+
+# The public URL this app is deployed at (used by NextAuth for callbacks)
+NEXTAUTH_URL="http://localhost:3000"
