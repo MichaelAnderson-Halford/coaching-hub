@@ -38,11 +38,18 @@ export default function LoginPage() {
     <main className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md">
         <div className="mb-10 text-center">
-          <div className="mx-auto mb-4 h-10 w-10 rounded-full bg-teal-light flex items-center justify-center">
-            <span className="font-display text-teal text-lg">•</span>
-          </div>
-          <h1 className="font-display text-3xl text-ink">Coaching Hub</h1>
-          <p className="mt-2 text-sm text-ink/60">
+          <p className="font-display text-3xl leading-none tracking-tight">
+            <span className="text-ink">PROVIDER</span>{" "}
+            <span className="text-teal">PRO</span>
+          </p>
+          <div
+            className="mx-auto mt-4 mb-5 h-1 w-40 rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, #E5177C, #6B4FA0, #2AA9C4, #6DBE2C, #D89A2E)",
+            }}
+          />
+          <p className="text-sm text-ink/60">
             Sign in to pick up where your last session left off.
           </p>
         </div>
