@@ -5,19 +5,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#132A36",
-        paper: "#F2F4F3",
-        panel: "#FFFFFF",
+        ink: "#F5F5F7",
+        paper: "#0B0B0D",
+        panel: "#18181C",
         teal: {
-          DEFAULT: "#2F6F65",
-          dark: "#204B44",
-          light: "#DCEAE7",
+          DEFAULT: "#E5177C",
+          dark: "#B8115F",
+          light: "#3A1526",
         },
         gold: {
-          DEFAULT: "#B98B2A",
-          light: "#F3E6C6",
+          DEFAULT: "#D89A2E",
+          light: "#3A2A12",
         },
-        line: "#DBDFDD",
+        line: "#2A2A30",
+        brand: {
+          purple: "#6B4FA0",
+          blue: "#2AA9C4",
+          green: "#6DBE2C",
+        },
       },
       fontFamily: {
         display: ["var(--font-fraunces)", "Georgia", "serif"],
