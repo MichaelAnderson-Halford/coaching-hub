@@ -1,0 +1,1 @@
+pbpaste > prisma/create-ben.ts

@@ -12,12 +12,23 @@ type ClientSummary = {
   zoomLink: string | null;
 };
 
+type AdminSummary = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 export default function AdminPage() {
   const [clients, setClients] = useState<ClientSummary[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [admins, setAdmins] = useState<AdminSummary[]>([]);
+  const [showCoachForm, setShowCoachForm] = useState(false);
+  const [coachForm, setCoachForm] = useState({ name: "", email: "", password: "" });
+  const [coachError, setCoachError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -26,8 +37,14 @@ export default function AdminPage() {
     setLoading(false);
   }
 
+  async function loadAdmins() {
+    const res = await fetch("/api/admins");
+    if (res.ok) setAdmins(await res.json());
+  }
+
   useEffect(() => {
     load();
+    loadAdmins();
   }, []);
 
   async function createClient(e: React.FormEvent) {
@@ -46,6 +63,24 @@ export default function AdminPage() {
     setForm({ name: "", email: "", password: "" });
     setShowForm(false);
     load();
+  }
+
+  async function createCoach(e: React.FormEvent) {
+    e.preventDefault();
+    setCoachError(null);
+    const res = await fetch("/api/admins", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(coachForm),
+    });
+    if (!res.ok) {
+      const body = await res.json();
+      setCoachError(body.error || "Something went wrong");
+      return;
+    }
+    setCoachForm({ name: "", email: "", password: "" });
+    setShowCoachForm(false);
+    loadAdmins();
   }
 
   return (
@@ -135,6 +170,68 @@ export default function AdminPage() {
           ))}
         </ul>
       )}
+
+      <hr className="border-line my-10" />
+
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="font-display text-2xl text-ink">Coaches</h2>
+          <p className="text-sm text-ink/60 mt-1">Everyone with admin access to this hub.</p>
+        </div>
+        <button
+          onClick={() => setShowCoachForm((v) => !v)}
+          className="focus-ring rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
+        >
+          {showCoachForm ? "Cancel" : "+ Add a coach"}
+        </button>
+      </div>
+
+      {showCoachForm && (
+        <form
+          onSubmit={createCoach}
+          className="bg-panel border border-line rounded-card p-6 mb-8 grid gap-4 sm:grid-cols-3"
+        >
+          <input
+            required
+            placeholder="Full name"
+            value={coachForm.name}
+            onChange={(e) => setCoachForm({ ...coachForm, name: e.target.value })}
+            className="focus-ring rounded-md border border-line px-3 py-2 text-sm"
+          />
+          <input
+            required
+            type="email"
+            placeholder="Email"
+            value={coachForm.email}
+            onChange={(e) => setCoachForm({ ...coachForm, email: e.target.value })}
+            className="focus-ring rounded-md border border-line px-3 py-2 text-sm"
+          />
+          <input
+            required
+            type="text"
+            placeholder="Temporary password"
+            value={coachForm.password}
+            onChange={(e) => setCoachForm({ ...coachForm, password: e.target.value })}
+            className="focus-ring rounded-md border border-line px-3 py-2 text-sm"
+          />
+          {coachError && <p className="sm:col-span-3 text-sm text-red-700">{coachError}</p>}
+          <button
+            type="submit"
+            className="focus-ring sm:col-span-3 rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
+          >
+            Create coach account
+          </button>
+        </form>
+      )}
+
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {admins.map((a) => (
+          <li key={a.id} className="bg-panel border border-line rounded-card p-5">
+            <p className="font-display text-lg text-ink">{a.name}</p>
+            <p className="text-xs text-ink/50">{a.email}</p>
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }
