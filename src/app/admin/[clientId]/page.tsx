@@ -131,14 +131,14 @@ export default function AdminClientPage({ params }: { params: { clientId: string
           </label>
           <button
             type="submit"
-            className="focus-ring sm:col-span-2 justify-self-start rounded-md bg-ink text-white text-sm font-medium px-4 py-2 hover:bg-ink/90 transition-colors"
+            className="focus-ring sm:col-span-2 justify-self-start rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
           >
             Save
           </button>
         </form>
       </section>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2 items-start">
         <section className="bg-panel border border-line rounded-card p-6">
           <h2 className="font-display text-lg mb-4">Coaching notes</h2>
           <form onSubmit={addNote} className="mb-4 flex gap-2">
