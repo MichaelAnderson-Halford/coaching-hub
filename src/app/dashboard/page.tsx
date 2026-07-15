@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import MessageBoard from "@/components/MessageBoard";
+import MetricsSection from "@/components/MetricsSection";
 
 type MyProfile = {
   id: string;
@@ -102,6 +103,8 @@ export default function DashboardPage() {
           </p>
         </section>
       )}
+
+      <MetricsSection clientId={profile.id} />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <section className="bg-panel border border-line rounded-card p-6">

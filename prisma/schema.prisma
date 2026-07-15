@@ -31,6 +31,7 @@ model User {
   resources      Resource[]
   sentMessages   Message[]  @relation("SentMessages")
   threadMessages Message[]  @relation("ClientThread")
+  metrics        Metric[]
 }
 
 model Note {
@@ -77,4 +78,27 @@ model Message {
 
   client   User   @relation("ClientThread", fields: [clientId], references: [id], onDelete: Cascade)
   clientId String
+}
+
+// A metric the client (or coach) defines to track over time, e.g. "Weight",
+// "Weekly revenue", "Hours slept". Each metric has many data points.
+model Metric {
+  id        String   @id @default(cuid())
+  name      String
+  unit      String?
+  createdAt DateTime @default(now())
+
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  entries MetricEntry[]
+}
+
+model MetricEntry {
+  id         String   @id @default(cuid())
+  value      Float
+  recordedAt DateTime @default(now())
+
+  metric   Metric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+  metricId String
 }

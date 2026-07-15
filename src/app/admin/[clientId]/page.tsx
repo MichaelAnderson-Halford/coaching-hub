@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import MessageBoard from "@/components/MessageBoard";
+import MetricsSection from "@/components/MetricsSection";
 
 type ClientDetail = {
   id: string;
@@ -195,6 +196,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
           </button>
         </form>
       </section>
+
+      <MetricsSection clientId={params.clientId} />
 
       <div className="grid gap-6 sm:grid-cols-2 items-start">
         <section className="bg-panel border border-line rounded-card p-6">
