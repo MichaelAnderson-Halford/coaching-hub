@@ -29,6 +29,13 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [ninetyDayPlan, setNinetyDayPlan] = useState("");
   const [planSaved, setPlanSaved] = useState(false);
 
+  // Mirrors the matching logic in the Zoom webhook, so you can see exactly
+  // what meeting ID it will use to link calls back to this client.
+  function extractMeetingId(link: string): string | null {
+    const match = link.match(/\/j\/(\d+)/);
+    return match ? match[1] : null;
+  }
+
   async function load() {
     const res = await fetch(`/api/clients/${params.clientId}`);
     if (res.ok) {
@@ -146,6 +153,19 @@ export default function AdminClientPage({ params }: { params: { clientId: string
               placeholder="https://zoom.us/j/…"
               className="focus-ring mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
             />
+            <p className="mt-1 text-xs font-mono">
+              {zoomLink.trim() === "" ? (
+                <span className="text-ink/40">Meeting ID will show here once you enter a link</span>
+              ) : extractMeetingId(zoomLink) ? (
+                <span className="text-teal">
+                  Detected meeting ID: {extractMeetingId(zoomLink)}
+                </span>
+              ) : (
+                <span className="text-gold">
+                  No meeting ID detected — Zoom auto-notes won't be able to match this client
+                </span>
+              )}
+            </p>
           </label>
           <label className="block">
             <span className="text-xs font-medium text-ink/60">Date &amp; time</span>
