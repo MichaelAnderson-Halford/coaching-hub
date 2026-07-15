@@ -28,6 +28,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [nextMeetingAt, setNextMeetingAt] = useState("");
   const [ninetyDayPlan, setNinetyDayPlan] = useState("");
   const [planSaved, setPlanSaved] = useState(false);
+  const [importingZoom, setImportingZoom] = useState(false);
+  const [importResult, setImportResult] = useState<string | null>(null);
 
   // Mirrors the matching logic in the Zoom webhook, so you can see exactly
   // what meeting ID it will use to link calls back to this client.
@@ -131,6 +133,29 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     URL.revokeObjectURL(url);
   }
 
+  async function importZoomNotes() {
+    setImportingZoom(true);
+    setImportResult(null);
+    try {
+      const res = await fetch(`/api/clients/${params.clientId}/import-zoom-notes`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setImportResult(data.error || "Something went wrong");
+      } else {
+        setImportResult(
+          `Imported ${data.imported} note${data.imported === 1 ? "" : "s"} (checked ${data.totalInstancesChecked} past calls, ${data.skipped} already imported)`
+        );
+        load();
+      }
+    } catch {
+      setImportResult("Something went wrong reaching the server");
+    } finally {
+      setImportingZoom(false);
+    }
+  }
+
   if (!client) {
     return <main className="px-6 py-10 max-w-4xl mx-auto text-sm text-ink/40">Loading…</main>;
   }
@@ -183,6 +208,18 @@ export default function AdminClientPage({ params }: { params: { clientId: string
             Save
           </button>
         </form>
+
+        <div className="mt-4 pt-4 border-t border-line">
+          <button
+            type="button"
+            onClick={importZoomNotes}
+            disabled={importingZoom || !extractMeetingId(zoomLink)}
+            className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-3 py-1.5 hover:border-teal transition-colors disabled:opacity-40"
+          >
+            {importingZoom ? "Importing…" : "Import past Zoom AI notes"}
+          </button>
+          {importResult && <p className="mt-2 text-xs text-ink/60">{importResult}</p>}
+        </div>
       </section>
 
       <section className="bg-panel border border-line rounded-card p-6 mb-6">
@@ -239,7 +276,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
           <ul className="space-y-3 max-h-72 overflow-y-auto">
             {client.notesAsClient.map((n) => (
               <li key={n.id} className="text-sm border-l-2 border-teal-light pl-3">
-                <p>{n.content}</p>
+                <p className="whitespace-pre-wrap">{n.content.replace(/\[\[zoom:[^\]]+\]\]/g, "").trim()}</p>
                 <p className="text-xs text-ink/40 font-mono mt-1">
                   {n.author.name} · {new Date(n.createdAt).toLocaleDateString()}
                 </p>

@@ -115,7 +115,7 @@ export default function DashboardPage() {
             )}
             {profile.notesAsClient.map((n) => (
               <li key={n.id} className="text-sm border-l-2 border-teal-light pl-3">
-                <p>{n.content}</p>
+                <p className="whitespace-pre-wrap">{n.content.replace(/\[\[zoom:[^\]]+\]\]/g, "").trim()}</p>
                 <p className="text-xs text-ink/40 font-mono mt-1">
                   {n.author.name} · {new Date(n.createdAt).toLocaleDateString()}
                 </p>
