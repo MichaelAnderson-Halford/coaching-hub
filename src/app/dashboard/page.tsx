@@ -71,7 +71,7 @@ export default function DashboardPage() {
               {new Date(profile.nextMeetingAt).toLocaleString()}
             </p>
             {profile.zoomLink && (
-              
+              <a
                 href={profile.zoomLink}
                 target="_blank"
                 rel="noreferrer"
@@ -147,7 +147,7 @@ export default function DashboardPage() {
             {profile.resources.map((r) => (
               <li key={r.id} className="text-sm">
                 {r.url ? (
-                  
+                  <a
                     href={r.url}
                     target="_blank"
                     rel="noreferrer"
