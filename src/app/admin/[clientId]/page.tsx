@@ -11,6 +11,7 @@ type ClientDetail = {
   email: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
+  ninetyDayPlan: string | null;
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
@@ -24,6 +25,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [resourceDraft, setResourceDraft] = useState({ title: "", url: "", description: "" });
   const [zoomLink, setZoomLink] = useState("");
   const [nextMeetingAt, setNextMeetingAt] = useState("");
+  const [ninetyDayPlan, setNinetyDayPlan] = useState("");
+  const [planSaved, setPlanSaved] = useState(false);
 
   async function load() {
     const res = await fetch(`/api/clients/${params.clientId}`);
@@ -32,6 +35,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       setClient(data);
       setZoomLink(data.zoomLink || "");
       setNextMeetingAt(data.nextMeetingAt ? toLocalInput(data.nextMeetingAt) : "");
+      setNinetyDayPlan(data.ninetyDayPlan || "");
     }
   }
 
@@ -97,6 +101,28 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     load();
   }
 
+  async function savePlan(e: React.FormEvent) {
+    e.preventDefault();
+    await fetch(`/api/clients/${params.clientId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ninetyDayPlan }),
+    });
+    setPlanSaved(true);
+    setTimeout(() => setPlanSaved(false), 2000);
+  }
+
+  function downloadPlan() {
+    if (!client) return;
+    const blob = new Blob([ninetyDayPlan], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${client.name.replace(/\s+/g, "-")}-90-day-plan.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (!client) {
     return <main className="px-6 py-10 max-w-4xl mx-auto text-sm text-ink/40">Loading…</main>;
   }
@@ -134,6 +160,38 @@ export default function AdminClientPage({ params }: { params: { clientId: string
             className="focus-ring sm:col-span-2 justify-self-start rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
           >
             Save
+          </button>
+        </form>
+      </section>
+
+      <section className="bg-panel border border-line rounded-card p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg">90-Day Plan</h2>
+          <div className="flex items-center gap-3">
+            {planSaved && <span className="text-xs text-teal">Saved</span>}
+            <button
+              type="button"
+              onClick={downloadPlan}
+              disabled={!ninetyDayPlan.trim()}
+              className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-3 py-1.5 hover:border-teal transition-colors disabled:opacity-40"
+            >
+              Download
+            </button>
+          </div>
+        </div>
+        <form onSubmit={savePlan}>
+          <textarea
+            value={ninetyDayPlan}
+            onChange={(e) => setNinetyDayPlan(e.target.value)}
+            placeholder="Write out the 90-day plan here…"
+            rows={10}
+            className="focus-ring w-full rounded-md border border-line px-3 py-2 text-sm leading-relaxed"
+          />
+          <button
+            type="submit"
+            className="focus-ring mt-3 rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
+          >
+            Save plan
           </button>
         </form>
       </section>
@@ -221,7 +279,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
             {client.resources.map((r) => (
               <li key={r.id} className="text-sm">
                 {r.url ? (
-                  <a
+                  
                     href={r.url}
                     target="_blank"
                     rel="noreferrer"

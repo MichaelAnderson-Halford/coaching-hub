@@ -23,6 +23,7 @@ model User {
   // Fields only relevant when role = CLIENT
   nextMeetingAt DateTime?
   zoomLink      String?
+  ninetyDayPlan String?    @db.Text
 
   notesAsClient  Note[]     @relation("ClientNotes")
   notesAsAuthor  Note[]     @relation("AuthorNotes")

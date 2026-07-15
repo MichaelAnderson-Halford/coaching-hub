@@ -9,6 +9,7 @@ type MyProfile = {
   name: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
+  ninetyDayPlan: string | null;
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
@@ -31,6 +32,17 @@ export default function DashboardPage() {
 
   const meetingSoon =
     profile.nextMeetingAt && new Date(profile.nextMeetingAt).getTime() - Date.now() < 1000 * 60 * 60 * 24;
+
+  function downloadPlan() {
+    if (!profile?.ninetyDayPlan) return;
+    const blob = new Blob([profile.ninetyDayPlan], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${profile.name.replace(/\s+/g, "-")}-90-day-plan.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <main className="min-h-screen px-6 py-10 max-w-4xl mx-auto">
@@ -59,7 +71,7 @@ export default function DashboardPage() {
               {new Date(profile.nextMeetingAt).toLocaleString()}
             </p>
             {profile.zoomLink && (
-              <a
+              
                 href={profile.zoomLink}
                 target="_blank"
                 rel="noreferrer"
@@ -73,6 +85,23 @@ export default function DashboardPage() {
           <p className="text-sm text-ink/50 italic">Nothing scheduled yet.</p>
         )}
       </section>
+
+      {profile.ninetyDayPlan && (
+        <section className="bg-panel border border-line rounded-card p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-lg">Your 90-Day Plan</h2>
+            <button
+              onClick={downloadPlan}
+              className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-3 py-1.5 hover:border-teal transition-colors"
+            >
+              Download
+            </button>
+          </div>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed text-ink/80">
+            {profile.ninetyDayPlan}
+          </p>
+        </section>
+      )}
 
       <div className="grid gap-6 sm:grid-cols-2">
         <section className="bg-panel border border-line rounded-card p-6">
@@ -118,7 +147,7 @@ export default function DashboardPage() {
             {profile.resources.map((r) => (
               <li key={r.id} className="text-sm">
                 {r.url ? (
-                  <a
+                  
                     href={r.url}
                     target="_blank"
                     rel="noreferrer"
