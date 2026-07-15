@@ -27,14 +27,19 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const { clientId, name, unit } = await req.json();
+  const { clientId, name, unit, target } = await req.json();
 
   if (!clientId || !name?.trim() || !canAccess(session, clientId)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const metric = await prisma.metric.create({
-    data: { clientId, name: name.trim(), unit: unit?.trim() || null },
+    data: {
+      clientId,
+      name: name.trim(),
+      unit: unit?.trim() || null,
+      target: target === "" || target === undefined || target === null ? null : Number(target),
+    },
     include: { entries: true },
   });
 

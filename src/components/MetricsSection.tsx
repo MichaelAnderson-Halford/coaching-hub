@@ -9,16 +9,25 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  ReferenceLine,
 } from "recharts";
 
 type MetricEntry = { id: string; value: number; recordedAt: string };
-type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
+type Metric = {
+  id: string;
+  name: string;
+  unit: string | null;
+  target: number | null;
+  entries: MetricEntry[];
+};
 
 export default function MetricsSection({ clientId }: { clientId: string }) {
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [showAddMetric, setShowAddMetric] = useState(false);
-  const [metricForm, setMetricForm] = useState({ name: "", unit: "" });
+  const [metricForm, setMetricForm] = useState({ name: "", unit: "", target: "" });
   const [valueDrafts, setValueDrafts] = useState<Record<string, string>>({});
+  const [editingTarget, setEditingTarget] = useState<string | null>(null);
+  const [targetDrafts, setTargetDrafts] = useState<Record<string, string>>({});
 
   async function load() {
     const res = await fetch(`/api/metrics?clientId=${clientId}`);
@@ -36,10 +45,26 @@ export default function MetricsSection({ clientId }: { clientId: string }) {
     await fetch("/api/metrics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId, name: metricForm.name, unit: metricForm.unit }),
+      body: JSON.stringify({
+        clientId,
+        name: metricForm.name,
+        unit: metricForm.unit,
+        target: metricForm.target,
+      }),
     });
-    setMetricForm({ name: "", unit: "" });
+    setMetricForm({ name: "", unit: "", target: "" });
     setShowAddMetric(false);
+    load();
+  }
+
+  async function saveTarget(metricId: string) {
+    const raw = targetDrafts[metricId];
+    await fetch(`/api/metrics/${metricId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target: raw }),
+    });
+    setEditingTarget(null);
     load();
   }
 
@@ -71,7 +96,7 @@ export default function MetricsSection({ clientId }: { clientId: string }) {
       {showAddMetric && (
         <form
           onSubmit={addMetric}
-          className="bg-panel border border-line rounded-card p-6 mb-6 grid gap-4 sm:grid-cols-3"
+          className="bg-panel border border-line rounded-card p-6 mb-6 grid gap-4 sm:grid-cols-4"
         >
           <input
             required
@@ -86,9 +111,17 @@ export default function MetricsSection({ clientId }: { clientId: string }) {
             onChange={(e) => setMetricForm({ ...metricForm, unit: e.target.value })}
             className="focus-ring rounded-md border border-line px-3 py-2 text-sm"
           />
+          <input
+            type="number"
+            step="any"
+            placeholder="Target"
+            value={metricForm.target}
+            onChange={(e) => setMetricForm({ ...metricForm, target: e.target.value })}
+            className="focus-ring rounded-md border border-line px-3 py-2 text-sm"
+          />
           <button
             type="submit"
-            className="focus-ring sm:col-span-3 justify-self-start rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
+            className="focus-ring sm:col-span-4 justify-self-start rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
           >
             Create metric
           </button>
@@ -103,10 +136,43 @@ export default function MetricsSection({ clientId }: { clientId: string }) {
         <div className="grid gap-6 sm:grid-cols-2">
           {metrics.map((m) => (
             <div key={m.id} className="bg-panel border border-line rounded-card p-6">
-              <h3 className="font-display text-lg text-ink mb-3">
-                {m.name}
-                {m.unit && <span className="text-ink/50 text-sm font-body"> ({m.unit})</span>}
-              </h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="font-display text-lg text-ink">
+                  {m.name}
+                  {m.unit && <span className="text-ink/50 text-sm font-body"> ({m.unit})</span>}
+                </h3>
+              </div>
+
+              <div className="mb-3 text-xs text-ink/60">
+                {editingTarget === m.id ? (
+                  <div className="flex items-center gap-2">
+                    <span>Target:</span>
+                    <input
+                      type="number"
+                      step="any"
+                      autoFocus
+                      value={targetDrafts[m.id] ?? (m.target ?? "")}
+                      onChange={(e) =>
+                        setTargetDrafts({ ...targetDrafts, [m.id]: e.target.value })
+                      }
+                      className="focus-ring w-24 rounded-md border border-line px-2 py-1 text-xs"
+                    />
+                    <button
+                      onClick={() => saveTarget(m.id)}
+                      className="focus-ring rounded-md bg-teal text-white text-xs px-2 py-1 hover:bg-teal-dark"
+                    >
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingTarget(m.id)}
+                    className="focus-ring underline decoration-dotted underline-offset-2 hover:text-ink"
+                  >
+                    Target: {m.target !== null ? `${m.target}${m.unit ? ` ${m.unit}` : ""}` : "not set"}
+                  </button>
+                )}
+              </div>
 
               {m.entries.length === 0 ? (
                 <p className="text-sm text-ink/40 italic mb-4">No data points yet.</p>
@@ -134,9 +200,18 @@ export default function MetricsSection({ clientId }: { clientId: string }) {
                         }}
                         labelStyle={{ color: "#F5F5F7" }}
                       />
+                      {m.target !== null && (
+                        <ReferenceLine
+                          y={m.target}
+                          stroke="#D89A2E"
+                          strokeDasharray="4 4"
+                          label={{ value: "Target", position: "insideTopRight", fill: "#D89A2E", fontSize: 11 }}
+                        />
+                      )}
                       <Line
                         type="monotone"
                         dataKey="value"
+                        name="Actual"
                         stroke="#E5177C"
                         strokeWidth={2}
                         dot={{ r: 3 }}
@@ -150,7 +225,7 @@ export default function MetricsSection({ clientId }: { clientId: string }) {
                 <input
                   type="number"
                   step="any"
-                  placeholder="Log a new value…"
+                  placeholder="Log actual value…"
                   value={valueDrafts[m.id] || ""}
                   onChange={(e) =>
                     setValueDrafts({ ...valueDrafts, [m.id]: e.target.value })
