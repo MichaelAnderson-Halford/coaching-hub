@@ -279,7 +279,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
             {client.resources.map((r) => (
               <li key={r.id} className="text-sm">
                 {r.url ? (
-                  
+                  <a
                     href={r.url}
                     target="_blank"
                     rel="noreferrer"
