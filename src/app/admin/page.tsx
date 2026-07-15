@@ -90,12 +90,20 @@ export default function AdminPage() {
           <h1 className="font-display text-3xl text-ink">Clients</h1>
           <p className="text-sm text-ink/60 mt-1">Every active coaching relationship, in one view.</p>
         </div>
-        <button
-          onClick={() => signOut({ callbackUrl: "/" })}
-          className="focus-ring text-sm text-ink/50 hover:text-ink underline underline-offset-4"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-5">
+          <Link
+            href="/admin/zoom-history"
+            className="focus-ring text-sm text-ink/50 hover:text-ink underline underline-offset-4"
+          >
+            Import Zoom history
+          </Link>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            className="focus-ring text-sm text-ink/50 hover:text-ink underline underline-offset-4"
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       <div className="mb-6">
