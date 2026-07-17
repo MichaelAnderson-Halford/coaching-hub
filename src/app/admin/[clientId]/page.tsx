@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MessageBoard from "@/components/MessageBoard";
 import BusinessBlock from "@/components/BusinessBlock";
@@ -9,7 +10,6 @@ import BusinessBlock from "@/components/BusinessBlock";
 type BusinessDetail = {
   id: string;
   name: string;
-  ninetyDayPlan: string | null;
   insight: string | null;
   insightUpdatedAt: string | null;
 };
@@ -20,6 +20,8 @@ type ClientDetail = {
   email: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
+  archivedAt: string | null;
+  ninetyDayPlan: string | null;
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
@@ -28,6 +30,7 @@ type ClientDetail = {
 
 export default function AdminClientPage({ params }: { params: { clientId: string } }) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [client, setClient] = useState<ClientDetail | null>(null);
 
   const [noteDraft, setNoteDraft] = useState("");
@@ -35,6 +38,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [resourceDraft, setResourceDraft] = useState({ title: "", url: "", description: "" });
   const [zoomLink, setZoomLink] = useState("");
   const [nextMeetingAt, setNextMeetingAt] = useState("");
+  const [ninetyDayPlan, setNinetyDayPlan] = useState("");
+  const [planSaved, setPlanSaved] = useState(false);
   const [importingZoom, setImportingZoom] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
 
@@ -53,6 +58,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       setClient(data);
       setZoomLink(data.zoomLink || "");
       setNextMeetingAt(data.nextMeetingAt ? toLocalInput(data.nextMeetingAt) : "");
+      setNinetyDayPlan(data.ninetyDayPlan || "");
     }
   }
 
@@ -80,6 +86,29 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       }),
     });
     load();
+  }
+
+  async function savePlan(e: React.FormEvent) {
+    e.preventDefault();
+    await fetch(`/api/clients/${params.clientId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ninetyDayPlan }),
+    });
+    setPlanSaved(true);
+    setTimeout(() => setPlanSaved(false), 2000);
+    load();
+  }
+
+  function downloadPlan() {
+    if (!client) return;
+    const blob = new Blob([ninetyDayPlan], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${client.name.replace(/\s+/g, "-")}-90-day-plan.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function addBusiness(e: React.FormEvent) {
@@ -154,15 +183,35 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     }
   }
 
+  async function archiveClient() {
+    if (!confirm("Archive this client? They'll be hidden from your active list but nothing is deleted — you can unarchive them later.")) {
+      return;
+    }
+    await fetch(`/api/clients/${params.clientId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: true }),
+    });
+    router.push("/admin");
+  }
+
   if (!client) {
     return <main className="px-6 py-10 max-w-4xl mx-auto text-sm text-ink/40">Loading…</main>;
   }
 
   return (
     <main className="min-h-screen px-6 py-10 max-w-4xl mx-auto">
-      <Link href="/admin" className="focus-ring text-sm text-ink/50 hover:text-ink">
-        ← All clients
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/admin" className="focus-ring text-sm text-ink/50 hover:text-ink">
+          ← All clients
+        </Link>
+        <button
+          onClick={archiveClient}
+          className="focus-ring text-sm text-ink/40 hover:text-red-700 transition-colors"
+        >
+          Archive client
+        </button>
+      </div>
       <h1 className="font-display text-3xl text-ink mt-2 mb-6">{client.name}</h1>
 
       <section className="bg-panel border border-line rounded-card p-6 mb-6">
@@ -220,13 +269,40 @@ export default function AdminClientPage({ params }: { params: { clientId: string
         </div>
       </section>
 
+      <section className="bg-panel border border-line rounded-card p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-lg">90-Day Plan</h2>
+          <div className="flex items-center gap-3">
+            {planSaved && <span className="text-xs text-teal">Saved</span>}
+            <button
+              type="button"
+              onClick={downloadPlan}
+              disabled={!ninetyDayPlan.trim()}
+              className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-3 py-1.5 hover:border-teal transition-colors disabled:opacity-40"
+            >
+              Download
+            </button>
+          </div>
+        </div>
+        <form onSubmit={savePlan}>
+          <textarea
+            value={ninetyDayPlan}
+            onChange={(e) => setNinetyDayPlan(e.target.value)}
+            placeholder="Write out the 90-day plan here…"
+            rows={10}
+            className="focus-ring w-full rounded-md border border-line px-3 py-2 text-sm leading-relaxed"
+          />
+          <button
+            type="submit"
+            className="focus-ring mt-3 rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
+          >
+            Save plan
+          </button>
+        </form>
+      </section>
+
       {client.businesses.map((business) => (
-        <BusinessBlock
-          key={business.id}
-          business={business}
-          clientName={client.name}
-          onSaved={load}
-        />
+        <BusinessBlock key={business.id} business={business} />
       ))}
 
       <div className="mb-8">

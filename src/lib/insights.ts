@@ -11,6 +11,7 @@ export async function refreshBusinessInsight(businessId: string) {
       client: {
         select: {
           name: true,
+          ninetyDayPlan: true,
           notesAsClient: {
             orderBy: { createdAt: "desc" },
             take: 15,
@@ -46,7 +47,7 @@ export async function refreshBusinessInsight(businessId: string) {
       })
       .join("\n") || "No metrics tracked yet.";
 
-  const planText = business.ninetyDayPlan?.trim() || "No 90-day plan written yet.";
+  const planText = business.client.ninetyDayPlan?.trim() || "No 90-day plan written yet.";
 
   const prompt = `You are helping a business coach prepare for their next session with a client named ${business.client.name}, specifically regarding their business "${business.name}".
 
@@ -59,7 +60,7 @@ ${winsText}
 Tracked metrics for "${business.name}" specifically:
 ${metricsText}
 
-90-day plan for "${business.name}":
+The client's overall 90-day plan (shared across all their businesses):
 ${planText}
 
 Write a concise briefing (under 200 words) covering: (1) overall progress on this specific business, (2) any risks or things stalling, (3) opportunities or wins to build on, (4) one or two suggested focus areas for the next session. Write directly to the coach, in plain prose, no headers or bullet lists.`;

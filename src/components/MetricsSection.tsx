@@ -81,6 +81,14 @@ export default function MetricsSection({ businessId }: { businessId: string }) {
     load();
   }
 
+  async function deleteMetric(metricId: string, name: string) {
+    if (!confirm(`Delete "${name}"? This removes all its logged data too — this can't be undone.`)) {
+      return;
+    }
+    await fetch(`/api/metrics/${metricId}`, { method: "DELETE" });
+    load();
+  }
+
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -141,6 +149,13 @@ export default function MetricsSection({ businessId }: { businessId: string }) {
                   {m.name}
                   {m.unit && <span className="text-ink/50 text-sm font-body"> ({m.unit})</span>}
                 </h3>
+                <button
+                  onClick={() => deleteMetric(m.id, m.name)}
+                  className="focus-ring text-xs text-ink/30 hover:text-red-700 transition-colors"
+                  title="Delete this metric"
+                >
+                  Delete
+                </button>
               </div>
 
               <div className="mb-3 text-xs text-ink/60">

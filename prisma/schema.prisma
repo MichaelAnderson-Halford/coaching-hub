@@ -24,6 +24,8 @@ model User {
   // client's businesses, since it's one coaching relationship / one call.
   nextMeetingAt DateTime?
   zoomLink      String?
+  archivedAt    DateTime?
+  ninetyDayPlan String?   @db.Text
 
   businesses     Business[]
   notesAsClient  Note[]     @relation("ClientNotes")
@@ -36,12 +38,13 @@ model User {
 
 // One of a client's businesses/ventures. Most clients have exactly one —
 // the UI only shows a business switcher when a client has more than one.
-// The 90-day plan, metrics, and AI briefing are all scoped per business,
-// since progress on separate ventures shouldn't be blended together.
+// Metrics and the AI briefing are scoped per business, since progress on
+// separate ventures shouldn't be blended together. The 90-day plan is
+// shared at the client level (see User.ninetyDayPlan) since most coaches
+// think of it as one overall plan for the relationship.
 model Business {
   id               String    @id @default(cuid())
   name             String
-  ninetyDayPlan    String?   @db.Text
   insight          String?   @db.Text
   insightUpdatedAt DateTime?
   createdAt        DateTime  @default(now())

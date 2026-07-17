@@ -4,14 +4,19 @@ import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
+  const showArchived = req.nextUrl.searchParams.get("archived") === "true";
+
   const clients = await prisma.user.findMany({
-    where: { role: "CLIENT" },
+    where: {
+      role: "CLIENT",
+      archivedAt: showArchived ? { not: null } : null,
+    },
     orderBy: { name: "asc" },
     select: {
       id: true,
@@ -19,6 +24,7 @@ export async function GET() {
       email: true,
       nextMeetingAt: true,
       zoomLink: true,
+      archivedAt: true,
     },
   });
 

@@ -24,7 +24,7 @@ export async function GET() {
   };
 
   const clients: ClientRow[] = await prisma.user.findMany({
-    where: { role: "CLIENT" },
+    where: { role: "CLIENT", archivedAt: null },
     select: {
       id: true,
       name: true,

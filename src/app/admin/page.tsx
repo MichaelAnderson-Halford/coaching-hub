@@ -59,6 +59,9 @@ export default function AdminPage() {
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [overviewLoading, setOverviewLoading] = useState(true);
 
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivedClients, setArchivedClients] = useState<ClientSummary[]>([]);
+
   async function loadOverview() {
     setOverviewLoading(true);
     const res = await fetch("/api/admin/overview");
@@ -81,6 +84,27 @@ export default function AdminPage() {
   async function loadAdmins() {
     const res = await fetch("/api/admins");
     if (res.ok) setAdmins(await res.json());
+  }
+
+  async function loadArchived() {
+    const res = await fetch("/api/clients?archived=true");
+    if (res.ok) setArchivedClients(await res.json());
+  }
+
+  async function toggleArchived() {
+    const next = !showArchived;
+    setShowArchived(next);
+    if (next) loadArchived();
+  }
+
+  async function unarchiveClient(id: string) {
+    await fetch(`/api/clients/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: false }),
+    });
+    loadArchived();
+    load();
   }
 
   useEffect(() => {
@@ -291,6 +315,43 @@ export default function AdminPage() {
             </li>
           ))}
         </ul>
+      )}
+
+      <div className="mt-4">
+        <button
+          onClick={toggleArchived}
+          className="focus-ring text-xs text-ink/40 hover:text-ink underline underline-offset-4"
+        >
+          {showArchived ? "Hide archived clients" : "View archived clients"}
+        </button>
+      </div>
+
+      {showArchived && (
+        <div className="mt-4">
+          {archivedClients.length === 0 ? (
+            <p className="text-sm text-ink/40 italic">No archived clients.</p>
+          ) : (
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {archivedClients.map((c) => (
+                <li
+                  key={c.id}
+                  className="bg-panel border border-line rounded-card p-5 opacity-60 flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-display text-lg text-ink">{c.name}</p>
+                    <p className="text-xs text-ink/50">{c.email}</p>
+                  </div>
+                  <button
+                    onClick={() => unarchiveClient(c.id)}
+                    className="focus-ring rounded-md border border-line text-ink text-xs px-3 py-1.5 hover:border-teal transition-colors"
+                  >
+                    Unarchive
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       <hr className="border-line my-10" />

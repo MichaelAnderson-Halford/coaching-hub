@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { refreshAllBusinessInsights } from "@/lib/insights";
 
 function canAccess(session: any, clientId: string) {
   if (!session) return false;
@@ -23,6 +24,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       email: true,
       nextMeetingAt: true,
       zoomLink: true,
+      archivedAt: true,
+      ninetyDayPlan: true,
       notesAsClient: {
         orderBy: { createdAt: "desc" },
         include: { author: { select: { name: true } } },
@@ -34,7 +37,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         select: {
           id: true,
           name: true,
-          ninetyDayPlan: true,
           insight: true,
           insightUpdatedAt: true,
           metrics: {
@@ -57,16 +59,29 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json();
-  const data: { zoomLink?: string; nextMeetingAt?: Date | null } = {};
+  const data: {
+    zoomLink?: string;
+    nextMeetingAt?: Date | null;
+    archivedAt?: Date | null;
+    ninetyDayPlan?: string;
+  } = {};
   if (typeof body.zoomLink === "string") data.zoomLink = body.zoomLink;
   if (body.nextMeetingAt === null) data.nextMeetingAt = null;
   else if (typeof body.nextMeetingAt === "string") data.nextMeetingAt = new Date(body.nextMeetingAt);
+  if (typeof body.archived === "boolean") {
+    data.archivedAt = body.archived ? new Date() : null;
+  }
+  if (typeof body.ninetyDayPlan === "string") data.ninetyDayPlan = body.ninetyDayPlan;
 
   const updated = await prisma.user.update({
     where: { id: params.id },
     data,
-    select: { id: true, zoomLink: true, nextMeetingAt: true },
+    select: { id: true, zoomLink: true, nextMeetingAt: true, archivedAt: true, ninetyDayPlan: true },
   });
+
+  if (typeof body.ninetyDayPlan === "string") {
+    await refreshAllBusinessInsights(params.id);
+  }
 
   return NextResponse.json(updated);
 }

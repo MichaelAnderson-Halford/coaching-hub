@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { refreshBusinessInsight } from "@/lib/insights";
 
 function canAccess(session: any, clientId: string) {
   if (!session) return false;
@@ -22,18 +21,13 @@ export async function PATCH(
   }
 
   const body = await req.json();
-  const data: { name?: string; ninetyDayPlan?: string } = {};
+  const data: { name?: string } = {};
   if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
-  if (typeof body.ninetyDayPlan === "string") data.ninetyDayPlan = body.ninetyDayPlan;
 
   const updated = await prisma.business.update({
     where: { id: params.businessId },
     data,
   });
-
-  if (typeof body.ninetyDayPlan === "string") {
-    await refreshBusinessInsight(params.businessId);
-  }
 
   return NextResponse.json(updated);
 }
