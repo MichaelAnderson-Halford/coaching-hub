@@ -13,6 +13,8 @@ type ClientDetail = {
   nextMeetingAt: string | null;
   zoomLink: string | null;
   ninetyDayPlan: string | null;
+  insight: string | null;
+  insightUpdatedAt: string | null;
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
@@ -166,6 +168,20 @@ export default function AdminClientPage({ params }: { params: { clientId: string
         ← All clients
       </Link>
       <h1 className="font-display text-3xl text-ink mt-2 mb-8">{client.name}</h1>
+
+      {client.insight && (
+        <section className="bg-teal-light border border-teal/30 rounded-card p-6 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-display text-lg">🤖 AI Briefing</h2>
+            {client.insightUpdatedAt && (
+              <span className="text-xs text-ink/50 font-mono">
+                Updated {new Date(client.insightUpdatedAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{client.insight}</p>
+        </section>
+      )}
 
       <section className="bg-panel border border-line rounded-card p-6 mb-6">
         <h2 className="font-display text-lg mb-4">Next session</h2>

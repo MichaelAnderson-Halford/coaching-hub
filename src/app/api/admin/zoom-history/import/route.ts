@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getZoomAccessToken } from "@/lib/zoom";
+import { refreshClientInsight } from "@/lib/insights";
 
 function encodeUuid(uuid: string): string {
   return encodeURIComponent(encodeURIComponent(uuid));
@@ -33,8 +34,8 @@ export async function POST(req: NextRequest) {
   let accessToken: string;
   try {
     accessToken = await getZoomAccessToken();
-  } catch {
-    return NextResponse.json({ error: "Could not authenticate with Zoom" }, { status: 500 });
+  } catch (e: any) {
+    return NextResponse.json({ error: `Zoom auth failed: ${e.message}` }, { status: 500 });
   }
 
   const summaryRes = await fetch(
@@ -68,6 +69,8 @@ export async function POST(req: NextRequest) {
       content: content.trim(),
     },
   });
+
+  await refreshClientInsight(clientId);
 
   return NextResponse.json(note, { status: 201 });
 }

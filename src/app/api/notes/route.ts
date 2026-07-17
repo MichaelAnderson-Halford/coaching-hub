@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { refreshClientInsight } from "@/lib/insights";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -18,6 +19,8 @@ export async function POST(req: NextRequest) {
     data: { clientId, content: content.trim(), authorId: session.user.id },
     include: { author: { select: { name: true } } },
   });
+
+  await refreshClientInsight(clientId);
 
   return NextResponse.json(note, { status: 201 });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { refreshClientInsight } from "@/lib/insights";
 
 // Zoom meeting links look like https://zoom.us/j/1234567890 — pull the
 // numeric meeting ID out so we can match it against the webhook payload.
@@ -83,6 +84,8 @@ export async function POST(req: NextRequest) {
               content: content.trim(),
             },
           });
+
+          await refreshClientInsight(matched.id);
         }
       }
     }

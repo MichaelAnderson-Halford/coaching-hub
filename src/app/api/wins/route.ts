@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { refreshClientInsight } from "@/lib/insights";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -17,6 +18,8 @@ export async function POST(req: NextRequest) {
   const win = await prisma.win.create({
     data: { clientId, content: content.trim() },
   });
+
+  await refreshClientInsight(clientId);
 
   return NextResponse.json(win, { status: 201 });
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { refreshClientInsight } from "@/lib/insights";
 
 function canAccess(session: any, clientId: string) {
   if (!session) return false;
@@ -32,6 +33,8 @@ export async function POST(
       recordedAt: recordedAt ? new Date(recordedAt) : new Date(),
     },
   });
+
+  await refreshClientInsight(metric.clientId);
 
   return NextResponse.json(entry, { status: 201 });
 }

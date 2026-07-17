@@ -24,6 +24,8 @@ model User {
   nextMeetingAt DateTime?
   zoomLink      String?
   ninetyDayPlan String?    @db.Text
+  insight          String?   @db.Text
+  insightUpdatedAt DateTime?
 
   notesAsClient  Note[]     @relation("ClientNotes")
   notesAsAuthor  Note[]     @relation("AuthorNotes")
