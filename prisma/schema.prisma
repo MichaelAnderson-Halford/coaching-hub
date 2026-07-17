@@ -27,6 +27,11 @@ model User {
   archivedAt    DateTime?
   ninetyDayPlan String?   @db.Text
 
+  // Tracks which nextMeetingAt value a reminder email was last sent for,
+  // so the daily cron job doesn't send duplicate reminders for the same
+  // session.
+  reminderSentForMeetingAt DateTime?
+
   businesses     Business[]
   notesAsClient  Note[]     @relation("ClientNotes")
   notesAsAuthor  Note[]     @relation("AuthorNotes")

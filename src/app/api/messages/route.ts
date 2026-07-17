@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyNewMessage } from "@/lib/notify";
 
 function canAccess(session: any, clientId: string) {
   if (!session) return false;
@@ -37,6 +38,14 @@ export async function POST(req: NextRequest) {
     data: { clientId, senderId: session!.user.id, content: content.trim() },
     include: { sender: { select: { name: true, role: true } } },
   });
+
+  await notifyNewMessage(
+    clientId,
+    session!.user.id,
+    message.sender.name,
+    message.sender.role === "CLIENT",
+    content.trim()
+  );
 
   return NextResponse.json(message, { status: 201 });
 }
