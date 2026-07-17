@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { refreshClientInsight } from "@/lib/insights";
+import { refreshBusinessInsight } from "@/lib/insights";
 
 function canAccess(session: any, clientId: string) {
   if (!session) return false;
@@ -17,7 +17,11 @@ export async function POST(
   const session = await getServerSession(authOptions);
 
   const metric = await prisma.metric.findUnique({ where: { id: params.metricId } });
-  if (!metric || !canAccess(session, metric.clientId)) {
+  if (!metric) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+  }
+  const business = await prisma.business.findUnique({ where: { id: metric.businessId } });
+  if (!business || !canAccess(session, business.clientId)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
@@ -34,7 +38,7 @@ export async function POST(
     },
   });
 
-  await refreshClientInsight(metric.clientId);
+  await refreshBusinessInsight(metric.businessId);
 
   return NextResponse.json(entry, { status: 201 });
 }

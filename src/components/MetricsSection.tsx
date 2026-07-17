@@ -21,7 +21,7 @@ type Metric = {
   entries: MetricEntry[];
 };
 
-export default function MetricsSection({ clientId }: { clientId: string }) {
+export default function MetricsSection({ businessId }: { businessId: string }) {
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [showAddMetric, setShowAddMetric] = useState(false);
   const [metricForm, setMetricForm] = useState({ name: "", unit: "", target: "" });
@@ -30,14 +30,14 @@ export default function MetricsSection({ clientId }: { clientId: string }) {
   const [targetDrafts, setTargetDrafts] = useState<Record<string, string>>({});
 
   async function load() {
-    const res = await fetch(`/api/metrics?clientId=${clientId}`);
+    const res = await fetch(`/api/metrics?businessId=${businessId}`);
     if (res.ok) setMetrics(await res.json());
   }
 
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId]);
+  }, [businessId]);
 
   async function addMetric(e: React.FormEvent) {
     e.preventDefault();
@@ -46,7 +46,7 @@ export default function MetricsSection({ clientId }: { clientId: string }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        clientId,
+        businessId,
         name: metricForm.name,
         unit: metricForm.unit,
         target: metricForm.target,

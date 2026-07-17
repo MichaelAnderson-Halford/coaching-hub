@@ -20,20 +20,36 @@ model User {
   role         Role     @default(CLIENT)
   createdAt    DateTime @default(now())
 
-  // Fields only relevant when role = CLIENT
+  // Fields only relevant when role = CLIENT — shared across all of a
+  // client's businesses, since it's one coaching relationship / one call.
   nextMeetingAt DateTime?
   zoomLink      String?
-  ninetyDayPlan String?    @db.Text
-  insight          String?   @db.Text
-  insightUpdatedAt DateTime?
 
+  businesses     Business[]
   notesAsClient  Note[]     @relation("ClientNotes")
   notesAsAuthor  Note[]     @relation("AuthorNotes")
   wins           Win[]
   resources      Resource[]
   sentMessages   Message[]  @relation("SentMessages")
   threadMessages Message[]  @relation("ClientThread")
-  metrics        Metric[]
+}
+
+// One of a client's businesses/ventures. Most clients have exactly one —
+// the UI only shows a business switcher when a client has more than one.
+// The 90-day plan, metrics, and AI briefing are all scoped per business,
+// since progress on separate ventures shouldn't be blended together.
+model Business {
+  id               String    @id @default(cuid())
+  name             String
+  ninetyDayPlan    String?   @db.Text
+  insight          String?   @db.Text
+  insightUpdatedAt DateTime?
+  createdAt        DateTime  @default(now())
+
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+
+  metrics Metric[]
 }
 
 model Note {
@@ -68,8 +84,9 @@ model Resource {
   clientId String
 }
 
-// Every message belongs to exactly one client's thread. The sender may be
-// that client, or one of the coaches (Michael / Ben) replying into it.
+// Every message belongs to exactly one client's thread (shared across all
+// of that client's businesses). The sender may be that client, or one of
+// the coaches (Michael / Ben) replying into it.
 model Message {
   id        String   @id @default(cuid())
   content   String
@@ -82,8 +99,8 @@ model Message {
   clientId String
 }
 
-// A metric the client (or coach) defines to track over time, e.g. "Weight",
-// "Weekly revenue", "Hours slept". Each metric has many data points.
+// A metric a specific business tracks over time, e.g. "Weight", "Weekly
+// revenue". Each metric has many data points.
 model Metric {
   id        String   @id @default(cuid())
   name      String
@@ -91,8 +108,8 @@ model Metric {
   target    Float?
   createdAt DateTime @default(now())
 
-  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  businessId String
 
   entries MetricEntry[]
 }

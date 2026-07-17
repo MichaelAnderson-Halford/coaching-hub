@@ -5,29 +5,41 @@ import { signOut, useSession } from "next-auth/react";
 import MessageBoard from "@/components/MessageBoard";
 import MetricsSection from "@/components/MetricsSection";
 
+type BusinessDetail = {
+  id: string;
+  name: string;
+  ninetyDayPlan: string | null;
+};
+
 type MyProfile = {
   id: string;
   name: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
-  ninetyDayPlan: string | null;
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
+  businesses: BusinessDetail[];
 };
 
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<MyProfile | null>(null);
+  const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!session?.user?.id) return;
     fetch(`/api/clients/${session.user.id}`)
       .then((r) => r.json())
-      .then(setProfile);
+      .then((data: MyProfile) => {
+        setProfile(data);
+        setActiveBusinessId(data.businesses[0]?.id || null);
+      });
   }, [session?.user?.id]);
 
-  if (!session || !profile) {
+  const activeBusiness = profile?.businesses.find((b) => b.id === activeBusinessId) || null;
+
+  if (!session || !profile || !activeBusiness) {
     return <main className="px-6 py-10 max-w-4xl mx-auto text-sm text-ink/40">Loading…</main>;
   }
 
@@ -35,12 +47,12 @@ export default function DashboardPage() {
     profile.nextMeetingAt && new Date(profile.nextMeetingAt).getTime() - Date.now() < 1000 * 60 * 60 * 24;
 
   function downloadPlan() {
-    if (!profile?.ninetyDayPlan) return;
-    const blob = new Blob([profile.ninetyDayPlan], { type: "text/plain" });
+    if (!profile?.name || !activeBusiness?.ninetyDayPlan) return;
+    const blob = new Blob([activeBusiness.ninetyDayPlan], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${profile.name.replace(/\s+/g, "-")}-90-day-plan.txt`;
+    a.download = `${profile.name.replace(/\s+/g, "-")}-${activeBusiness.name.replace(/\s+/g, "-")}-90-day-plan.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -59,6 +71,24 @@ export default function DashboardPage() {
           Sign out
         </button>
       </header>
+
+      {profile.businesses.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          {profile.businesses.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => setActiveBusinessId(b.id)}
+              className={`focus-ring rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                b.id === activeBusinessId
+                  ? "bg-teal text-white"
+                  : "bg-panel border border-line text-ink/70 hover:border-teal"
+              }`}
+            >
+              {b.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <section
         className={`rounded-card p-6 mb-6 border ${
@@ -87,10 +117,10 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {profile.ninetyDayPlan && (
+      {activeBusiness.ninetyDayPlan && (
         <section className="bg-panel border border-line rounded-card p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg">Your 90-Day Plan</h2>
+            <h2 className="font-display text-lg">Your 90-Day Plan — {activeBusiness.name}</h2>
             <button
               onClick={downloadPlan}
               className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-3 py-1.5 hover:border-teal transition-colors"
@@ -99,12 +129,12 @@ export default function DashboardPage() {
             </button>
           </div>
           <p className="text-sm whitespace-pre-wrap leading-relaxed text-ink/80">
-            {profile.ninetyDayPlan}
+            {activeBusiness.ninetyDayPlan}
           </p>
         </section>
       )}
 
-      <MetricsSection clientId={profile.id} />
+      <MetricsSection businessId={activeBusiness.id} />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <section className="bg-panel border border-line rounded-card p-6">

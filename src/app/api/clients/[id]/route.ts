@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { refreshClientInsight } from "@/lib/insights";
 
 function canAccess(session: any, clientId: string) {
   if (!session) return false;
@@ -24,12 +23,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       email: true,
       nextMeetingAt: true,
       zoomLink: true,
-      ninetyDayPlan: true,
-      insight: true,
-      insightUpdatedAt: true,
-      notesAsClient: { orderBy: { createdAt: "desc" }, include: { author: { select: { name: true } } } },
+      notesAsClient: {
+        orderBy: { createdAt: "desc" },
+        include: { author: { select: { name: true } } },
+      },
       wins: { orderBy: { createdAt: "desc" } },
       resources: { orderBy: { createdAt: "desc" } },
+      businesses: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          name: true,
+          ninetyDayPlan: true,
+          insight: true,
+          insightUpdatedAt: true,
+          metrics: {
+            orderBy: { createdAt: "asc" },
+            include: { entries: { orderBy: { recordedAt: "asc" } } },
+          },
+        },
+      },
     },
   });
 
@@ -44,21 +57,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json();
-  const data: { zoomLink?: string; nextMeetingAt?: Date | null; ninetyDayPlan?: string } = {};
+  const data: { zoomLink?: string; nextMeetingAt?: Date | null } = {};
   if (typeof body.zoomLink === "string") data.zoomLink = body.zoomLink;
   if (body.nextMeetingAt === null) data.nextMeetingAt = null;
   else if (typeof body.nextMeetingAt === "string") data.nextMeetingAt = new Date(body.nextMeetingAt);
-  if (typeof body.ninetyDayPlan === "string") data.ninetyDayPlan = body.ninetyDayPlan;
 
   const updated = await prisma.user.update({
     where: { id: params.id },
     data,
-    select: { id: true, zoomLink: true, nextMeetingAt: true, ninetyDayPlan: true },
+    select: { id: true, zoomLink: true, nextMeetingAt: true },
   });
-
-  if (typeof body.ninetyDayPlan === "string") {
-    await refreshClientInsight(params.id);
-  }
 
   return NextResponse.json(updated);
 }

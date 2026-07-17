@@ -52,5 +52,11 @@ export async function POST(req: NextRequest) {
     select: { id: true, name: true, email: true },
   });
 
+  // Every client starts with one default business — the UI only shows a
+  // switcher once a second one gets added.
+  await prisma.business.create({
+    data: { clientId: client.id, name: `${name}'s Business` },
+  });
+
   return NextResponse.json(client, { status: 201 });
 }

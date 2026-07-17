@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getZoomAccessToken } from "@/lib/zoom";
-import { refreshClientInsight } from "@/lib/insights";
+import { refreshAllBusinessInsights } from "@/lib/insights";
 
 function encodeUuid(uuid: string): string {
   return encodeURIComponent(encodeURIComponent(uuid));
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   const marker = `[[zoom:${uuid}]]`;
 
-  // Check across every client's notes, not just this one — a call could
+  // Check across every note, not just this client's — a call could
   // theoretically get imported to the wrong client and re-tried elsewhere.
   const alreadyImported = await prisma.note.findFirst({
     where: { content: { contains: marker } },
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  await refreshClientInsight(clientId);
+  await refreshAllBusinessInsights(clientId);
 
   return NextResponse.json(note, { status: 201 });
 }

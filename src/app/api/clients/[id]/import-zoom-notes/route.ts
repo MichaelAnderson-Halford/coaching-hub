@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getZoomAccessToken } from "@/lib/zoom";
-import { refreshClientInsight } from "@/lib/insights";
+import { refreshAllBusinessInsights } from "@/lib/insights";
 
 function extractMeetingId(zoomLink: string | null): string | null {
   if (!zoomLink) return null;
@@ -123,7 +123,7 @@ export async function POST(
     }
 
     if (imported > 0) {
-      await refreshClientInsight(client.id);
+      await refreshAllBusinessInsights(client.id);
     }
 
     return NextResponse.json({ imported, skipped, totalInstancesChecked: instances.length });

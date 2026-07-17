@@ -11,13 +11,18 @@ function canAccess(session: any, clientId: string) {
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const clientId = req.nextUrl.searchParams.get("clientId");
-  if (!clientId || !canAccess(session, clientId)) {
+  const businessId = req.nextUrl.searchParams.get("businessId");
+  if (!businessId) {
+    return NextResponse.json({ error: "Missing businessId" }, { status: 400 });
+  }
+
+  const business = await prisma.business.findUnique({ where: { id: businessId } });
+  if (!business || !canAccess(session, business.clientId)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const metrics = await prisma.metric.findMany({
-    where: { clientId },
+    where: { businessId },
     orderBy: { createdAt: "asc" },
     include: { entries: { orderBy: { recordedAt: "asc" } } },
   });
@@ -27,15 +32,20 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const { clientId, name, unit, target } = await req.json();
+  const { businessId, name, unit, target } = await req.json();
 
-  if (!clientId || !name?.trim() || !canAccess(session, clientId)) {
+  if (!businessId || !name?.trim()) {
+    return NextResponse.json({ error: "Missing businessId or name" }, { status: 400 });
+  }
+
+  const business = await prisma.business.findUnique({ where: { id: businessId } });
+  if (!business || !canAccess(session, business.clientId)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const metric = await prisma.metric.create({
     data: {
-      clientId,
+      businessId,
       name: name.trim(),
       unit: unit?.trim() || null,
       target: target === "" || target === undefined || target === null ? null : Number(target),

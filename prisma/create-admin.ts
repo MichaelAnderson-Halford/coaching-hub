@@ -7,7 +7,8 @@ async function main() {
   const email = "michael@providerpro.co.uk";
   const password = "Rayolga1234!!";
   const name = "Michael";
-const passwordHash = await bcrypt.hash(password, 10);
+
+  const passwordHash = await bcrypt.hash(password, 10);
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -17,6 +18,7 @@ const passwordHash = await bcrypt.hash(password, 10);
 
   console.log("Admin account ready:", user.email);
 }
+
 main()
   .catch((e) => {
     console.error(e);

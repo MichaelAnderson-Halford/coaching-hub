@@ -6,23 +6,31 @@ import Link from "next/link";
 import MessageBoard from "@/components/MessageBoard";
 import MetricsSection from "@/components/MetricsSection";
 
+type BusinessDetail = {
+  id: string;
+  name: string;
+  ninetyDayPlan: string | null;
+  insight: string | null;
+  insightUpdatedAt: string | null;
+};
+
 type ClientDetail = {
   id: string;
   name: string;
   email: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
-  ninetyDayPlan: string | null;
-  insight: string | null;
-  insightUpdatedAt: string | null;
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
+  businesses: BusinessDetail[];
 };
 
 export default function AdminClientPage({ params }: { params: { clientId: string } }) {
   const { data: session } = useSession();
   const [client, setClient] = useState<ClientDetail | null>(null);
+  const [activeBusinessId, setActiveBusinessId] = useState<string | null>(null);
+
   const [noteDraft, setNoteDraft] = useState("");
   const [winDraft, setWinDraft] = useState("");
   const [resourceDraft, setResourceDraft] = useState({ title: "", url: "", description: "" });
@@ -33,21 +41,29 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [importingZoom, setImportingZoom] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
 
-  // Mirrors the matching logic in the Zoom webhook, so you can see exactly
-  // what meeting ID it will use to link calls back to this client.
+  const [showAddBusiness, setShowAddBusiness] = useState(false);
+  const [newBusinessName, setNewBusinessName] = useState("");
+
+  const activeBusiness = client?.businesses.find((b) => b.id === activeBusinessId) || null;
+
   function extractMeetingId(link: string): string | null {
     const match = link.match(/\/j\/(\d+)/);
     return match ? match[1] : null;
   }
 
-  async function load() {
+  async function load(preserveActiveId?: string) {
     const res = await fetch(`/api/clients/${params.clientId}`);
     if (res.ok) {
       const data = await res.json();
       setClient(data);
       setZoomLink(data.zoomLink || "");
       setNextMeetingAt(data.nextMeetingAt ? toLocalInput(data.nextMeetingAt) : "");
-      setNinetyDayPlan(data.ninetyDayPlan || "");
+      const keepId = preserveActiveId || activeBusinessId;
+      const stillExists = data.businesses.find((b: BusinessDetail) => b.id === keepId);
+      const nextActiveId = stillExists ? keepId : data.businesses[0]?.id || null;
+      setActiveBusinessId(nextActiveId);
+      const nextActive = data.businesses.find((b: BusinessDetail) => b.id === nextActiveId);
+      setNinetyDayPlan(nextActive?.ninetyDayPlan || "");
     }
   }
 
@@ -55,6 +71,12 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.clientId]);
+
+  function switchBusiness(id: string) {
+    setActiveBusinessId(id);
+    const b = client?.businesses.find((x) => x.id === id);
+    setNinetyDayPlan(b?.ninetyDayPlan || "");
+  }
 
   function toLocalInput(iso: string) {
     const d = new Date(iso);
@@ -75,6 +97,20 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       }),
     });
     load();
+  }
+
+  async function addBusiness(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newBusinessName.trim()) return;
+    const res = await fetch("/api/businesses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: params.clientId, name: newBusinessName }),
+    });
+    const created = await res.json();
+    setNewBusinessName("");
+    setShowAddBusiness(false);
+    load(created.id);
   }
 
   async function addNote(e: React.FormEvent) {
@@ -115,22 +151,24 @@ export default function AdminClientPage({ params }: { params: { clientId: string
 
   async function savePlan(e: React.FormEvent) {
     e.preventDefault();
-    await fetch(`/api/clients/${params.clientId}`, {
+    if (!activeBusinessId) return;
+    await fetch(`/api/businesses/${activeBusinessId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ninetyDayPlan }),
     });
     setPlanSaved(true);
     setTimeout(() => setPlanSaved(false), 2000);
+    load();
   }
 
   function downloadPlan() {
-    if (!client) return;
+    if (!client || !activeBusiness) return;
     const blob = new Blob([ninetyDayPlan], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${client.name.replace(/\s+/g, "-")}-90-day-plan.txt`;
+    a.download = `${client.name.replace(/\s+/g, "-")}-${activeBusiness.name.replace(/\s+/g, "-")}-90-day-plan.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -158,7 +196,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     }
   }
 
-  if (!client) {
+  if (!client || !activeBusiness) {
     return <main className="px-6 py-10 max-w-4xl mx-auto text-sm text-ink/40">Loading…</main>;
   }
 
@@ -167,19 +205,72 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       <Link href="/admin" className="focus-ring text-sm text-ink/50 hover:text-ink">
         ← All clients
       </Link>
-      <h1 className="font-display text-3xl text-ink mt-2 mb-8">{client.name}</h1>
+      <h1 className="font-display text-3xl text-ink mt-2 mb-6">{client.name}</h1>
 
-      {client.insight && (
+      {client.businesses.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          {client.businesses.map((b) => (
+            <button
+              key={b.id}
+              onClick={() => switchBusiness(b.id)}
+              className={`focus-ring rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                b.id === activeBusinessId
+                  ? "bg-teal text-white"
+                  : "bg-panel border border-line text-ink/70 hover:border-teal"
+              }`}
+            >
+              {b.name}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowAddBusiness((v) => !v)}
+            className="focus-ring rounded-full border border-line text-ink/50 text-sm px-3 py-1.5 hover:border-teal"
+          >
+            {showAddBusiness ? "Cancel" : "+ Business"}
+          </button>
+        </div>
+      )}
+
+      {client.businesses.length <= 1 && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowAddBusiness((v) => !v)}
+            className="focus-ring text-xs text-ink/40 hover:text-ink underline underline-offset-4"
+          >
+            {showAddBusiness ? "Cancel" : "This client runs another business? Add it"}
+          </button>
+        </div>
+      )}
+
+      {showAddBusiness && (
+        <form onSubmit={addBusiness} className="flex gap-2 mb-6">
+          <input
+            required
+            placeholder="Business name"
+            value={newBusinessName}
+            onChange={(e) => setNewBusinessName(e.target.value)}
+            className="focus-ring flex-1 rounded-md border border-line px-3 py-2 text-sm"
+          />
+          <button
+            type="submit"
+            className="focus-ring rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
+          >
+            Add
+          </button>
+        </form>
+      )}
+
+      {activeBusiness.insight && (
         <section className="bg-teal-light border border-teal/30 rounded-card p-6 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-display text-lg">🤖 AI Briefing</h2>
-            {client.insightUpdatedAt && (
+            <h2 className="font-display text-lg">🤖 AI Briefing — {activeBusiness.name}</h2>
+            {activeBusiness.insightUpdatedAt && (
               <span className="text-xs text-ink/50 font-mono">
-                Updated {new Date(client.insightUpdatedAt).toLocaleString()}
+                Updated {new Date(activeBusiness.insightUpdatedAt).toLocaleString()}
               </span>
             )}
           </div>
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">{client.insight}</p>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{activeBusiness.insight}</p>
         </section>
       )}
 
@@ -240,7 +331,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
 
       <section className="bg-panel border border-line rounded-card p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg">90-Day Plan</h2>
+          <h2 className="font-display text-lg">90-Day Plan — {activeBusiness.name}</h2>
           <div className="flex items-center gap-3">
             {planSaved && <span className="text-xs text-teal">Saved</span>}
             <button
@@ -270,7 +361,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
         </form>
       </section>
 
-      <MetricsSection clientId={params.clientId} />
+      <MetricsSection businessId={activeBusiness.id} />
 
       <div className="grid gap-6 sm:grid-cols-2 items-start">
         <section className="bg-panel border border-line rounded-card p-6">
