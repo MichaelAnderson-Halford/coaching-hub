@@ -8,6 +8,7 @@ import MessageBoard from "@/components/MessageBoard";
 import BusinessBlock from "@/components/BusinessBlock";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import HomeworkSection from "@/components/HomeworkSection";
+import SessionLog from "@/components/SessionLog";
 
 type MetricEntry = { id: string; value: number; recordedAt: string };
 type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
@@ -32,6 +33,7 @@ type ClientDetail = {
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
   homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean }[];
+  sessions: { id: string; sessionNumber: number; date: string; durationMinutes: number | null; summary: string }[];
   businesses: BusinessDetail[];
 };
 
@@ -292,6 +294,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
           {importResult && <p className="mt-2 text-xs text-ink/60">{importResult}</p>}
         </div>
       </section>
+
+      <SessionLog clientId={client.id} sessions={client.sessions} onChanged={load} />
 
       <section className="bg-panel border border-line rounded-card p-6 mb-6">
         <div className="flex items-center justify-between mb-4">

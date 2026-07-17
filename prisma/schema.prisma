@@ -38,6 +38,7 @@ model User {
   wins           Win[]
   resources      Resource[]
   homeworkItems  HomeworkItem[]
+  sessions       Session[]
   sentMessages   Message[]  @relation("SentMessages")
   threadMessages Message[]  @relation("ClientThread")
 }
@@ -88,6 +89,21 @@ model Resource {
   url         String?
   description String?
   createdAt   DateTime @default(now())
+
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+}
+
+// A structured record of an actual coaching call — separate from the
+// freeform Notes feed, since a call summary reads much better broken
+// into date/duration/summary than pasted as one flat block of text.
+model Session {
+  id              String   @id @default(cuid())
+  sessionNumber   Int
+  date            DateTime @default(now())
+  durationMinutes Int?
+  summary         String   @db.Text
+  createdAt       DateTime @default(now())
 
   client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId String

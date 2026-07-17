@@ -33,6 +33,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       wins: { orderBy: { createdAt: "desc" } },
       resources: { orderBy: { createdAt: "desc" } },
       homeworkItems: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { createdAt: "asc" }] },
+      sessions: { orderBy: { sessionNumber: "desc" } },
       businesses: {
         orderBy: { createdAt: "asc" },
         select: {
