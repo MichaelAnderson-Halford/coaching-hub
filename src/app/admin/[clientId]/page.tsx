@@ -7,6 +7,7 @@ import Link from "next/link";
 import MessageBoard from "@/components/MessageBoard";
 import BusinessBlock from "@/components/BusinessBlock";
 import ActivityTimeline from "@/components/ActivityTimeline";
+import HomeworkSection from "@/components/HomeworkSection";
 
 type MetricEntry = { id: string; value: number; recordedAt: string };
 type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
@@ -30,6 +31,7 @@ type ClientDetail = {
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
+  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean }[];
   businesses: BusinessDetail[];
 };
 
@@ -413,6 +415,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
           businesses={client.businesses}
         />
       </section>
+
+      <HomeworkSection clientId={client.id} items={client.homeworkItems} onChanged={load} />
 
       <div className="grid gap-6 sm:grid-cols-2 items-start">
         <section className="bg-panel border border-line rounded-card p-6">

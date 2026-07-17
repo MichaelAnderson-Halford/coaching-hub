@@ -37,6 +37,7 @@ model User {
   notesAsAuthor  Note[]     @relation("AuthorNotes")
   wins           Win[]
   resources      Resource[]
+  homeworkItems  HomeworkItem[]
   sentMessages   Message[]  @relation("SentMessages")
   threadMessages Message[]  @relation("ClientThread")
 }
@@ -87,6 +88,20 @@ model Resource {
   url         String?
   description String?
   createdAt   DateTime @default(now())
+
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String
+}
+
+// Small between-session commitments — either the coach or the client can
+// add these, and either side can check them off.
+model HomeworkItem {
+  id          String    @id @default(cuid())
+  title       String
+  dueDate     DateTime?
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
 
   client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId String
