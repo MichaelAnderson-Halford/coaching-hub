@@ -124,6 +124,23 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     load();
   }
 
+  async function deleteBusiness(businessId: string, name: string) {
+    if (
+      !confirm(
+        `Delete "${name}"? This removes all its metrics too — this can't be undone.`
+      )
+    ) {
+      return;
+    }
+    const res = await fetch(`/api/businesses/${businessId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || "Something went wrong");
+      return;
+    }
+    load();
+  }
+
   async function addNote(e: React.FormEvent) {
     e.preventDefault();
     if (!noteDraft.trim()) return;
@@ -302,7 +319,17 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       </section>
 
       {client.businesses.map((business) => (
-        <BusinessBlock key={business.id} business={business} />
+        <BusinessBlock
+          key={business.id}
+          business={business}
+          editable
+          onRenamed={load}
+          onDelete={
+            client.businesses.length > 1
+              ? () => deleteBusiness(business.id, business.name)
+              : undefined
+          }
+        />
       ))}
 
       <div className="mb-8">

@@ -41,6 +41,19 @@ export async function DELETE(
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
+  const business = await prisma.business.findUnique({ where: { id: params.businessId } });
+  if (!business) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const count = await prisma.business.count({ where: { clientId: business.clientId } });
+  if (count <= 1) {
+    return NextResponse.json(
+      { error: "Can't delete a client's only business — they need at least one." },
+      { status: 400 }
+    );
+  }
+
   await prisma.business.delete({ where: { id: params.businessId } });
   return NextResponse.json({ deleted: true });
 }
