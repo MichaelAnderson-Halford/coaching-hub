@@ -6,12 +6,17 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import MessageBoard from "@/components/MessageBoard";
 import BusinessBlock from "@/components/BusinessBlock";
+import ActivityTimeline from "@/components/ActivityTimeline";
+
+type MetricEntry = { id: string; value: number; recordedAt: string };
+type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
 
 type BusinessDetail = {
   id: string;
   name: string;
   insight: string | null;
   insightUpdatedAt: string | null;
+  metrics: Metric[];
 };
 
 type ClientDetail = {
@@ -366,10 +371,10 @@ export default function AdminClientPage({ params }: { params: { clientId: string
         )}
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 items-start">
-        <section className="bg-panel border border-line rounded-card p-6">
-          <h2 className="font-display text-lg mb-4">Coaching notes</h2>
-          <form onSubmit={addNote} className="mb-4 flex gap-2">
+      <section className="bg-panel border border-line rounded-card p-6 mb-6">
+        <h2 className="font-display text-lg mb-4">Add to the timeline</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <form onSubmit={addNote} className="flex gap-2">
             <input
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
@@ -383,21 +388,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
               Add
             </button>
           </form>
-          <ul className="space-y-3 max-h-72 overflow-y-auto">
-            {client.notesAsClient.map((n) => (
-              <li key={n.id} className="text-sm border-l-2 border-teal-light pl-3">
-                <p className="whitespace-pre-wrap">{n.content.replace(/\[\[zoom:[^\]]+\]\]/g, "").trim()}</p>
-                <p className="text-xs text-ink/40 font-mono mt-1">
-                  {n.author.name} · {new Date(n.createdAt).toLocaleDateString()}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="bg-panel border border-line rounded-card p-6">
-          <h2 className="font-display text-lg mb-4">Wins</h2>
-          <form onSubmit={addWin} className="mb-4 flex gap-2">
+          <form onSubmit={addWin} className="flex gap-2">
             <input
               value={winDraft}
               onChange={(e) => setWinDraft(e.target.value)}
@@ -411,18 +402,19 @@ export default function AdminClientPage({ params }: { params: { clientId: string
               Add
             </button>
           </form>
-          <ul className="space-y-3 max-h-72 overflow-y-auto">
-            {client.wins.map((w) => (
-              <li key={w.id} className="text-sm border-l-2 border-gold-light pl-3">
-                <p>{w.content}</p>
-                <p className="text-xs text-ink/40 font-mono mt-1">
-                  {new Date(w.createdAt).toLocaleDateString()}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
+        </div>
+      </section>
 
+      <section className="bg-panel border border-line rounded-card p-6 mb-6">
+        <h2 className="font-display text-lg mb-4">Activity timeline</h2>
+        <ActivityTimeline
+          notes={client.notesAsClient}
+          wins={client.wins}
+          businesses={client.businesses}
+        />
+      </section>
+
+      <div className="grid gap-6 sm:grid-cols-2 items-start">
         <section className="bg-panel border border-line rounded-card p-6">
           <h2 className="font-display text-lg mb-4">Resources</h2>
           <form onSubmit={addResource} className="mb-4 space-y-2">

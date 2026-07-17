@@ -4,12 +4,17 @@ import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import MessageBoard from "@/components/MessageBoard";
 import BusinessBlock from "@/components/BusinessBlock";
+import ActivityTimeline from "@/components/ActivityTimeline";
+
+type MetricEntry = { id: string; value: number; recordedAt: string };
+type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
 
 type BusinessDetail = {
   id: string;
   name: string;
   insight: string | null;
   insightUpdatedAt: string | null;
+  metrics: Metric[];
 };
 
 type MyProfile = {
@@ -116,41 +121,16 @@ export default function DashboardPage() {
         <BusinessBlock key={business.id} business={business} />
       ))}
 
+      <section className="bg-panel border border-line rounded-card p-6 mb-6">
+        <h2 className="font-display text-lg mb-4">Your journey</h2>
+        <ActivityTimeline
+          notes={profile.notesAsClient}
+          wins={profile.wins}
+          businesses={profile.businesses}
+        />
+      </section>
+
       <div className="grid gap-6 sm:grid-cols-2">
-        <section className="bg-panel border border-line rounded-card p-6">
-          <h2 className="font-display text-lg mb-4">Coaching notes</h2>
-          <ul className="space-y-3 max-h-72 overflow-y-auto">
-            {profile.notesAsClient.length === 0 && (
-              <p className="text-sm text-ink/40 italic">No notes yet.</p>
-            )}
-            {profile.notesAsClient.map((n) => (
-              <li key={n.id} className="text-sm border-l-2 border-teal-light pl-3">
-                <p className="whitespace-pre-wrap">{n.content.replace(/\[\[zoom:[^\]]+\]\]/g, "").trim()}</p>
-                <p className="text-xs text-ink/40 font-mono mt-1">
-                  {n.author.name} · {new Date(n.createdAt).toLocaleDateString()}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="bg-panel border border-line rounded-card p-6">
-          <h2 className="font-display text-lg mb-4">Your wins</h2>
-          <ul className="space-y-3 max-h-72 overflow-y-auto">
-            {profile.wins.length === 0 && (
-              <p className="text-sm text-ink/40 italic">Your wins will show up here.</p>
-            )}
-            {profile.wins.map((w) => (
-              <li key={w.id} className="text-sm border-l-2 border-gold-light pl-3">
-                <p>{w.content}</p>
-                <p className="text-xs text-ink/40 font-mono mt-1">
-                  {new Date(w.createdAt).toLocaleDateString()}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </section>
-
         <section className="bg-panel border border-line rounded-card p-6">
           <h2 className="font-display text-lg mb-4">Resources</h2>
           <ul className="space-y-3 max-h-72 overflow-y-auto">
