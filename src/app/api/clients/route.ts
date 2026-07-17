@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { sendEmail } from "@/lib/email";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -62,6 +63,12 @@ export async function POST(req: NextRequest) {
   // switcher once a second one gets added.
   await prisma.business.create({
     data: { clientId: client.id, name: `${name}'s Business` },
+  });
+
+  await sendEmail({
+    to: client.email,
+    subject: "Welcome to Provider Pro Coaching Hub",
+    html: `<p>Hi ${name.split(" ")[0]},</p><p>Your coaching hub account is ready. Here's how to sign in:</p><p>Email: ${client.email}<br/>Password: <strong>${password}</strong></p><p><a href="${process.env.NEXTAUTH_URL || ""}">Sign in here</a></p>`,
   });
 
   return NextResponse.json(client, { status: 201 });

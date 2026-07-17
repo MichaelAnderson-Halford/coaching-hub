@@ -244,13 +244,20 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="mb-6">
+      <div className="mb-6 flex items-center gap-4">
         <button
           onClick={() => setShowForm((v) => !v)}
           className="focus-ring rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
         >
           {showForm ? "Cancel" : "+ Add a client"}
         </button>
+        <span className="text-xs text-ink/40">
+          or send new clients your{" "}
+          <a href="/intake" target="_blank" className="underline hover:text-ink">
+            signup link
+          </a>{" "}
+          to set themselves up
+        </span>
       </div>
 
       {showForm && (
