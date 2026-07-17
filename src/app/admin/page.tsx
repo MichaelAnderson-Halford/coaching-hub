@@ -18,6 +18,30 @@ type AdminSummary = {
   email: string;
 };
 
+type UpcomingSession = {
+  id: string;
+  name: string;
+  nextMeetingAt: string;
+  zoomLink: string | null;
+};
+
+type NeedsAttentionClient = {
+  id: string;
+  name: string;
+  lastActivityAt: string | null;
+  daysSince: number | null;
+};
+
+type ActivityItem = {
+  type: "note" | "win" | "message";
+  id: string;
+  clientId: string;
+  clientName: string;
+  createdAt: string;
+  summary: string;
+  content: string;
+};
+
 export default function AdminPage() {
   const [clients, setClients] = useState<ClientSummary[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -29,6 +53,23 @@ export default function AdminPage() {
   const [showCoachForm, setShowCoachForm] = useState(false);
   const [coachForm, setCoachForm] = useState({ name: "", email: "", password: "" });
   const [coachError, setCoachError] = useState<string | null>(null);
+
+  const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
+  const [needsAttention, setNeedsAttention] = useState<NeedsAttentionClient[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+
+  async function loadOverview() {
+    setOverviewLoading(true);
+    const res = await fetch("/api/admin/overview");
+    if (res.ok) {
+      const data = await res.json();
+      setUpcomingSessions(data.upcomingSessions);
+      setNeedsAttention(data.needsAttention);
+      setActivity(data.activity);
+    }
+    setOverviewLoading(false);
+  }
 
   async function load() {
     setLoading(true);
@@ -45,6 +86,7 @@ export default function AdminPage() {
   useEffect(() => {
     load();
     loadAdmins();
+    loadOverview();
   }, []);
 
   async function createClient(e: React.FormEvent) {
@@ -105,6 +147,78 @@ export default function AdminPage() {
           </button>
         </div>
       </header>
+
+      {!overviewLoading && (
+        <div className="grid gap-6 sm:grid-cols-2 mb-10">
+          <section className="bg-panel border border-line rounded-card p-5">
+            <h2 className="font-display text-base text-ink mb-3">This week</h2>
+            {upcomingSessions.length === 0 ? (
+              <p className="text-sm text-ink/40 italic">No sessions scheduled.</p>
+            ) : (
+              <ul className="space-y-3">
+                {upcomingSessions.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between text-sm">
+                    <Link href={`/admin/${s.id}`} className="focus-ring hover:text-teal">
+                      {s.name}
+                    </Link>
+                    <span className="font-mono text-xs text-ink/60">
+                      {new Date(s.nextMeetingAt).toLocaleString(undefined, {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="bg-panel border border-line rounded-card p-5">
+            <h2 className="font-display text-base text-ink mb-3">Needs attention</h2>
+            {needsAttention.length === 0 ? (
+              <p className="text-sm text-ink/40 italic">Everyone's up to date.</p>
+            ) : (
+              <ul className="space-y-3">
+                {needsAttention.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between text-sm">
+                    <Link href={`/admin/${c.id}`} className="focus-ring hover:text-teal">
+                      {c.name}
+                    </Link>
+                    <span className="text-xs text-gold">
+                      {c.daysSince === null ? "No activity yet" : `${c.daysSince}d quiet`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="bg-panel border border-line rounded-card p-5 sm:col-span-2">
+            <h2 className="font-display text-base text-ink mb-3">Recent activity</h2>
+            {activity.length === 0 ? (
+              <p className="text-sm text-ink/40 italic">Nothing yet.</p>
+            ) : (
+              <ul className="space-y-3 max-h-64 overflow-y-auto">
+                {activity.map((a) => (
+                  <li key={`${a.type}-${a.id}`} className="text-sm border-l-2 border-teal-light pl-3">
+                    <Link href={`/admin/${a.clientId}`} className="focus-ring hover:text-teal">
+                      <span className="font-medium">{a.clientName}</span>
+                    </Link>{" "}
+                    <span className="text-ink/60">— {a.summary}</span>
+                    <p className="text-xs text-ink/40 mt-0.5 line-clamp-1">{a.content}</p>
+                    <p className="text-xs text-ink/30 font-mono">
+                      {new Date(a.createdAt).toLocaleString()}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
 
       <div className="mb-6">
         <button
