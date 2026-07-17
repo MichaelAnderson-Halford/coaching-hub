@@ -20,6 +20,9 @@ export default function HomeworkSection({
 }) {
   const [title, setTitle] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [showPaste, setShowPaste] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [splitting, setSplitting] = useState(false);
 
   async function addItem(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +35,34 @@ export default function HomeworkSection({
     setTitle("");
     setDueDate("");
     onChanged();
+  }
+
+  function extractBulletLines(text: string): string[] {
+    return text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => /^[●•\-*▪]\s+/.test(line))
+      .map((line) => line.replace(/^[●•\-*▪]\s+/, "").trim())
+      .filter(Boolean);
+  }
+
+  async function splitPaste(e: React.FormEvent) {
+    e.preventDefault();
+    const bulletItems = extractBulletLines(pasteText);
+    if (bulletItems.length === 0) return;
+    setSplitting(true);
+    try {
+      await fetch("/api/homework", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clientId, items: bulletItems }),
+      });
+      setPasteText("");
+      setShowPaste(false);
+      onChanged();
+    } finally {
+      setSplitting(false);
+    }
   }
 
   async function toggle(id: string, completed: boolean) {
@@ -75,6 +106,38 @@ export default function HomeworkSection({
           Add
         </button>
       </form>
+
+      <div className="mb-4">
+        <button
+          onClick={() => setShowPaste((v) => !v)}
+          className="focus-ring text-xs text-ink/40 hover:text-ink underline underline-offset-4"
+        >
+          {showPaste ? "Cancel" : "Paste from Zoom notes"}
+        </button>
+      </div>
+
+      {showPaste && (
+        <form onSubmit={splitPaste} className="mb-4">
+          <textarea
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder={"Paste the \"Next steps\" section here — each bulleted line (●, •, or -) becomes its own homework item."}
+            rows={6}
+            className="focus-ring w-full rounded-md border border-line px-3 py-2 text-sm leading-relaxed mb-2"
+          />
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={splitting || extractBulletLines(pasteText).length === 0}
+              className="focus-ring rounded-md bg-teal text-white text-sm px-4 py-2 hover:bg-teal-dark disabled:opacity-40"
+            >
+              {splitting
+                ? "Adding…"
+                : `Split into ${extractBulletLines(pasteText).length || ""} item${extractBulletLines(pasteText).length === 1 ? "" : "s"}`}
+            </button>
+          </div>
+        </form>
+      )}
 
       {todo.length === 0 ? (
         <p className="text-sm text-ink/40 italic mb-2">Nothing outstanding.</p>

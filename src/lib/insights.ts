@@ -63,7 +63,7 @@ ${metricsText}
 The client's overall 90-day plan (shared across all their businesses):
 ${planText}
 
-Write a concise briefing (under 200 words) covering: (1) overall progress on this specific business, (2) any risks or things stalling, (3) opportunities or wins to build on, (4) one or two suggested focus areas for the next session. Write directly to the coach, in plain prose, no headers or bullet lists.`;
+Write a thorough briefing (around 400 words) covering: (1) overall progress on this specific business, (2) any risks or things stalling, (3) opportunities or wins to build on, (4) a couple of suggested focus areas for the next session. Write directly to the coach, in plain prose, no headers or bullet lists.`;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -75,7 +75,7 @@ Write a concise briefing (under 200 words) covering: (1) overall progress on thi
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 400,
+        max_tokens: 700,
         messages: [{ role: "user", content: prompt }],
       }),
     });
