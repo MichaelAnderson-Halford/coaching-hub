@@ -3,12 +3,23 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { escapeHtml } from "@/lib/sanitize";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 function generatePassword(): string {
   return crypto.randomBytes(9).toString("base64").replace(/[+/=]/g, "").slice(0, 10);
 }
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const allowed = await checkRateLimit(`intake:${ip}`, 5, 60);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Too many signups from this connection — please try again later." },
+      { status: 429 }
+    );
+  }
+
   const { name, email, goals } = await req.json();
 
   if (!name?.trim() || !email?.trim()) {
@@ -56,20 +67,23 @@ export async function POST(req: NextRequest) {
 
   // Email the client their login details, and let the coaches know someone
   // new signed up.
+  const safeFirstName = escapeHtml(client.name.split(" ")[0]);
   await sendEmail({
     to: client.email,
     subject: "Welcome to Provider Pro Coaching Hub",
-    html: `<p>Hi ${client.name.split(" ")[0]},</p><p>Your account is ready. Here's how to sign in:</p><p>Email: ${client.email}<br/>Password: <strong>${password}</strong></p><p>${process.env.NEXTAUTH_URL || ""}</p>`,
+    html: `<p>Hi ${safeFirstName},</p><p>Your account is ready. Here's how to sign in:</p><p>Email: ${escapeHtml(client.email)}<br/>Password: <strong>${escapeHtml(password)}</strong></p><p>${escapeHtml(process.env.NEXTAUTH_URL || "")}</p>`,
   });
 
+  const safeName = escapeHtml(client.name);
+  const safeGoals = goals?.trim() ? escapeHtml(goals.trim()) : null;
   const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
   await Promise.all(
     admins.map((a: { email: string }) =>
       sendEmail({
         to: a.email,
-        subject: `New client signed up: ${client.name}`,
-        html: `<p><strong>${client.name}</strong> (${client.email}) just signed up through the intake form.</p>${
-          goals?.trim() ? `<p>Their goals:</p><p style="padding:12px;background:#f5f5f7;border-radius:8px;">${goals.trim()}</p>` : ""
+        subject: `New client signed up: ${safeName}`,
+        html: `<p><strong>${safeName}</strong> (${escapeHtml(client.email)}) just signed up through the intake form.</p>${
+          safeGoals ? `<p>Their goals:</p><p style="padding:12px;background:#f5f5f7;border-radius:8px;">${safeGoals}</p>` : ""
         }<p><a href="${process.env.NEXTAUTH_URL || ""}/admin/${client.id}">View their profile</a></p>`,
       })
     )

@@ -9,6 +9,7 @@ import BusinessBlock from "@/components/BusinessBlock";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import HomeworkSection from "@/components/HomeworkSection";
 import SessionLog from "@/components/SessionLog";
+import PlanEditor from "@/components/PlanEditor";
 
 type MetricEntry = { id: string; value: number; recordedAt: string };
 type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
@@ -47,8 +48,6 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [resourceDraft, setResourceDraft] = useState({ title: "", url: "", description: "" });
   const [zoomLink, setZoomLink] = useState("");
   const [nextMeetingAt, setNextMeetingAt] = useState("");
-  const [ninetyDayPlan, setNinetyDayPlan] = useState("");
-  const [planSaved, setPlanSaved] = useState(false);
   const [importingZoom, setImportingZoom] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
 
@@ -67,7 +66,6 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       setClient(data);
       setZoomLink(data.zoomLink || "");
       setNextMeetingAt(data.nextMeetingAt ? toLocalInput(data.nextMeetingAt) : "");
-      setNinetyDayPlan(data.ninetyDayPlan || "");
     }
   }
 
@@ -95,29 +93,6 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       }),
     });
     load();
-  }
-
-  async function savePlan(e: React.FormEvent) {
-    e.preventDefault();
-    await fetch(`/api/clients/${params.clientId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ninetyDayPlan }),
-    });
-    setPlanSaved(true);
-    setTimeout(() => setPlanSaved(false), 2000);
-    load();
-  }
-
-  function downloadPlan() {
-    if (!client) return;
-    const blob = new Blob([ninetyDayPlan], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${client.name.replace(/\s+/g, "-")}-90-day-plan.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   async function addBusiness(e: React.FormEvent) {
@@ -297,37 +272,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
 
       <SessionLog clientId={client.id} sessions={client.sessions} onChanged={load} />
 
-      <section className="bg-panel border border-line rounded-card p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg">90-Day Plan</h2>
-          <div className="flex items-center gap-3">
-            {planSaved && <span className="text-xs text-teal">Saved</span>}
-            <button
-              type="button"
-              onClick={downloadPlan}
-              disabled={!ninetyDayPlan.trim()}
-              className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-3 py-1.5 hover:border-teal transition-colors disabled:opacity-40"
-            >
-              Download
-            </button>
-          </div>
-        </div>
-        <form onSubmit={savePlan}>
-          <textarea
-            value={ninetyDayPlan}
-            onChange={(e) => setNinetyDayPlan(e.target.value)}
-            placeholder="Write out the 90-day plan here…"
-            rows={10}
-            className="focus-ring w-full rounded-md border border-line px-3 py-2 text-sm leading-relaxed"
-          />
-          <button
-            type="submit"
-            className="focus-ring mt-3 rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
-          >
-            Save plan
-          </button>
-        </form>
-      </section>
+      <PlanEditor clientId={client.id} businessNames={client.businesses.map((b) => b.name)} />
 
       {client.businesses.map((business) => (
         <BusinessBlock

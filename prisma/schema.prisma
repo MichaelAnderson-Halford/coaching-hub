@@ -44,6 +44,7 @@ model User {
   resources      Resource[]
   homeworkItems  HomeworkItem[]
   sessions       Session[]
+  plan           Plan?
   sentMessages   Message[]  @relation("SentMessages")
   threadMessages Message[]  @relation("ClientThread")
 }
@@ -165,4 +166,77 @@ model MetricEntry {
 
   metric   Metric @relation(fields: [metricId], references: [id], onDelete: Cascade)
   metricId String
+}
+
+// Lightweight abuse protection — records an event per attempt (failed
+// login, intake submission) keyed by email or IP, so we can count recent
+// attempts within a time window without needing an external service.
+model RateLimitEvent {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+}
+
+// A structured quarterly success plan for a client — one document that
+// contains a section per business, each with its own theme, personal
+// recommendations, projects (outcome/approach/measures/timeline), and KPIs.
+// Replaces the old plain-text ninetyDayPlan when present.
+model Plan {
+  id           String    @id @default(cuid())
+  quarterLabel String
+  startDate    DateTime?
+  endDate      DateTime?
+  advisorName  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  clientId String @unique
+
+  sections PlanSection[]
+}
+
+model PlanSection {
+  id               String  @id @default(cuid())
+  businessName     String
+  theme            String?
+  themeDescription String? @db.Text
+  // Recommendations stored as newline-separated "Title: description" lines
+  // — simple to edit in a textarea, simple to render as a list.
+  recommendations  String? @db.Text
+  order            Int     @default(0)
+
+  plan   Plan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId String
+
+  projects PlanProject[]
+  kpis     PlanKpi[]
+}
+
+model PlanProject {
+  id          String  @id @default(cuid())
+  name        String
+  outcome     String  @db.Text
+  // Bullet lists stored as newline-separated text — one line per bullet.
+  keyApproach String  @db.Text
+  measures    String  @db.Text
+  month1Label String?
+  month2Label String?
+  month3Label String?
+  order       Int     @default(0)
+
+  section   PlanSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
+}
+
+model PlanKpi {
+  id    String  @id @default(cuid())
+  name  String
+  value String?
+  order Int     @default(0)
+
+  section   PlanSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId String
 }

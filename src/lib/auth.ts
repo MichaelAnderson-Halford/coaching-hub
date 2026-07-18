@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { checkRateLimit } from "./rateLimit";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -18,8 +19,16 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const normalizedEmail = credentials.email.toLowerCase().trim();
+
+        // Cap login attempts per email to slow down credential-guessing —
+        // applies regardless of whether the account exists or the
+        // password is right, so it can't be used to enumerate accounts.
+        const allowed = await checkRateLimit(`login:${normalizedEmail}`, 10, 15);
+        if (!allowed) return null;
+
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() },
+          where: { email: normalizedEmail },
         });
         if (!user) return null;
 

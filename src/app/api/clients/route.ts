@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { escapeHtml } from "@/lib/sanitize";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
   await sendEmail({
     to: client.email,
     subject: "Welcome to Provider Pro Coaching Hub",
-    html: `<p>Hi ${name.split(" ")[0]},</p><p>Your coaching hub account is ready. Here's how to sign in:</p><p>Email: ${client.email}<br/>Password: <strong>${password}</strong></p><p><a href="${process.env.NEXTAUTH_URL || ""}">Sign in here</a></p>`,
+    html: `<p>Hi ${escapeHtml(name.split(" ")[0])},</p><p>Your coaching hub account is ready. Here's how to sign in:</p><p>Email: ${escapeHtml(client.email)}<br/>Password: <strong>${escapeHtml(password)}</strong></p><p><a href="${process.env.NEXTAUTH_URL || ""}">Sign in here</a></p>`,
   });
 
   return NextResponse.json(client, { status: 201 });

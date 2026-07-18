@@ -9,6 +9,7 @@ import HomeworkSection from "@/components/HomeworkSection";
 import ClientMessageCard from "@/components/ClientMessageCard";
 import StatsStrip from "@/components/StatsStrip";
 import ProgressRings from "@/components/ProgressRings";
+import PlanView from "@/components/PlanView";
 
 type MetricEntry = { id: string; value: number; recordedAt: string };
 type Metric = { id: string; name: string; unit: string | null; target: number | null; entries: MetricEntry[] };
@@ -40,12 +41,16 @@ type MyProfile = {
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<MyProfile | null>(null);
+  const [plan, setPlan] = useState<any>(null);
 
   function load() {
     if (!session?.user?.id) return;
     fetch(`/api/clients/${session.user.id}`)
       .then((r) => r.json())
       .then(setProfile);
+    fetch(`/api/clients/${session.user.id}/plan`)
+      .then((r) => r.json())
+      .then(setPlan);
   }
 
   useEffect(() => {
@@ -128,21 +133,27 @@ export default function DashboardPage() {
 
       <ProgressRings businesses={profile.businesses} />
 
-      {profile.ninetyDayPlan && (
-        <section className="bg-panel border border-line rounded-card p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg">Your 90-Day Plan</h2>
-            <button
-              onClick={downloadPlan}
-              className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-3 py-1.5 hover:border-teal transition-colors"
-            >
-              Download
-            </button>
-          </div>
-          <p className="text-sm whitespace-pre-wrap leading-relaxed text-ink/80">
-            {profile.ninetyDayPlan}
-          </p>
-        </section>
+      {plan ? (
+        <div className="mb-6">
+          <PlanView plan={plan} />
+        </div>
+      ) : (
+        profile.ninetyDayPlan && (
+          <section className="bg-panel border border-line rounded-card p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-lg">Your 90-Day Plan</h2>
+              <button
+                onClick={downloadPlan}
+                className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-3 py-1.5 hover:border-teal transition-colors"
+              >
+                Download
+              </button>
+            </div>
+            <p className="text-sm whitespace-pre-wrap leading-relaxed text-ink/80">
+              {profile.ninetyDayPlan}
+            </p>
+          </section>
+        )
       )}
 
       {profile.businesses.map((business) => (
