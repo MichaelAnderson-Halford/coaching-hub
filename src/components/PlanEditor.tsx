@@ -43,6 +43,8 @@ export default function PlanEditor({
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
   const [savedPlan, setSavedPlan] = useState<any>(null);
 
   const [quarterLabel, setQuarterLabel] = useState("");
@@ -165,19 +167,90 @@ export default function PlanEditor({
     }
   }
 
+  async function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setExtracting(true);
+    setExtractError(null);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = () => reject(new Error("Couldn't read the file"));
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch(`/api/clients/${clientId}/plan/extract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pdfBase64: base64 }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        setExtractError(data.error || "Something went wrong extracting the plan");
+        return;
+      }
+
+      setQuarterLabel(data.quarterLabel || "");
+      setStartDate(data.startDate ? data.startDate.slice(0, 10) : "");
+      setEndDate(data.endDate ? data.endDate.slice(0, 10) : "");
+      setAdvisorName(data.advisorName || "");
+      setSections(
+        (data.sections || []).map((s: any) => ({
+          businessName: s.businessName || "",
+          theme: s.theme || "",
+          themeDescription: s.themeDescription || "",
+          recommendations: s.recommendations || "",
+          projects: (s.projects || []).map((p: any) => ({
+            name: p.name || "",
+            outcome: p.outcome || "",
+            keyApproach: p.keyApproach || "",
+            measures: p.measures || "",
+            month1Label: p.month1Label || "",
+            month2Label: p.month2Label || "",
+            month3Label: p.month3Label || "",
+          })),
+          kpis: (s.kpis || []).map((k: any) => ({ name: k.name || "", value: k.value || "" })),
+        }))
+      );
+      setEditing(true);
+    } catch {
+      setExtractError("Something went wrong reaching the server");
+    } finally {
+      setExtracting(false);
+      e.target.value = "";
+    }
+  }
+
   if (loading) return null;
 
   return (
     <section className="mb-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-display text-lg">Quarterly Success Plan</h2>
-        <button
-          onClick={() => setEditing((v) => !v)}
-          className="focus-ring rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
-        >
-          {editing ? "Cancel" : savedPlan ? "Edit plan" : "+ Build a plan"}
-        </button>
+        <div className="flex items-center gap-3">
+          <label className="focus-ring rounded-md border border-line text-ink text-sm font-medium px-4 py-2 hover:border-teal transition-colors cursor-pointer">
+            {extracting ? "Reading PDF…" : "Upload a plan PDF"}
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={handlePdfUpload}
+              disabled={extracting}
+              className="hidden"
+            />
+          </label>
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className="focus-ring rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
+          >
+            {editing ? "Cancel" : savedPlan ? "Edit plan" : "+ Build a plan"}
+          </button>
+        </div>
       </div>
+
+      {extractError && <p className="text-sm text-red-700 mb-4">{extractError}</p>}
 
       {!editing && savedPlan && <PlanView plan={savedPlan} />}
       {!editing && !savedPlan && (
