@@ -6,9 +6,12 @@ import MessageBoard from "@/components/MessageBoard";
 import BusinessBlock from "@/components/BusinessBlock";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import HomeworkSection from "@/components/HomeworkSection";
+import ClientMessageCard from "@/components/ClientMessageCard";
+import StatsStrip from "@/components/StatsStrip";
+import ProgressRings from "@/components/ProgressRings";
 
 type MetricEntry = { id: string; value: number; recordedAt: string };
-type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
+type Metric = { id: string; name: string; unit: string | null; target: number | null; entries: MetricEntry[] };
 
 type BusinessDetail = {
   id: string;
@@ -21,9 +24,12 @@ type BusinessDetail = {
 type MyProfile = {
   id: string;
   name: string;
+  createdAt: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
   ninetyDayPlan: string | null;
+  clientMessage: string | null;
+  clientMessageUpdatedAt: string | null;
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
@@ -65,9 +71,13 @@ export default function DashboardPage() {
     URL.revokeObjectURL(url);
   }
 
+  const metricEntryDates = profile.businesses.flatMap((b) =>
+    b.metrics.flatMap((m) => m.entries.map((e) => e.recordedAt))
+  );
+
   return (
     <main className="min-h-screen px-6 py-10 max-w-4xl mx-auto">
-      <header className="flex items-center justify-between mb-10">
+      <header className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-3xl text-ink">Welcome back, {profile.name.split(" ")[0]}</h1>
           <p className="text-sm text-ink/60 mt-1">Here's everything from your coaching space.</p>
@@ -79,6 +89,15 @@ export default function DashboardPage() {
           Sign out
         </button>
       </header>
+
+      <StatsStrip
+        createdAt={profile.createdAt}
+        wins={profile.wins}
+        notes={profile.notesAsClient}
+        metricEntryDates={metricEntryDates}
+      />
+
+      <ClientMessageCard message={profile.clientMessage} updatedAt={profile.clientMessageUpdatedAt} />
 
       <section
         className={`rounded-card p-6 mb-6 border ${
@@ -106,6 +125,8 @@ export default function DashboardPage() {
           <p className="text-sm text-ink/50 italic">Nothing scheduled yet.</p>
         )}
       </section>
+
+      <ProgressRings businesses={profile.businesses} />
 
       {profile.ninetyDayPlan && (
         <section className="bg-panel border border-line rounded-card p-6 mb-6">

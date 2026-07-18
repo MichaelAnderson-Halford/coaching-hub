@@ -104,3 +104,99 @@ export async function refreshAllBusinessInsights(clientId: string) {
   });
   await Promise.all(businesses.map((b: { id: string }) => refreshBusinessInsight(b.id)));
 }
+
+// A warm, personal note written directly TO the client — separate from the
+// coach-facing briefing above. Shown on the client's own dashboard.
+export async function refreshClientMessage(clientId: string) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return;
+
+  const client = await prisma.user.findUnique({
+    where: { id: clientId },
+    select: {
+      name: true,
+      wins: { orderBy: { createdAt: "desc" }, take: 5 },
+      notesAsClient: { orderBy: { createdAt: "desc" }, take: 5 },
+      businesses: {
+        select: {
+          name: true,
+          metrics: {
+            select: {
+              name: true,
+              unit: true,
+              target: true,
+              entries: { orderBy: { recordedAt: "desc" }, take: 3, select: { value: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!client) return;
+
+  const winsText =
+    client.wins.map((w: { content: string }) => `- ${w.content}`).join("\n") || "None logged yet.";
+
+  const notesText =
+    client.notesAsClient
+      .map((n: { content: string }) => `- ${n.content.replace(/\[\[zoom:[^\]]+\]\]/g, "").trim()}`)
+      .join("\n") || "None yet.";
+
+  const metricsText =
+    client.businesses
+      .flatMap((b: { name: string; metrics: { name: string; unit: string | null; target: number | null; entries: { value: number }[] }[] }) =>
+        b.metrics.map((m) => {
+          const latest = m.entries[0];
+          const target = m.target !== null ? ` (target ${m.target}${m.unit ? " " + m.unit : ""})` : "";
+          return `- ${b.name} / ${m.name}: latest ${latest ? latest.value : "no data yet"}${target}`;
+        })
+      )
+      .join("\n") || "No metrics tracked yet.";
+
+  const prompt = `You are writing a short, warm, encouraging personal note directly to a coaching client named ${client.name}. Speak directly to them using "you" — this is a message FOR them, not a report about them.
+
+Their recent wins:
+${winsText}
+
+Recent session notes:
+${notesText}
+
+Their tracked metrics:
+${metricsText}
+
+Write a genuinely warm, specific, encouraging note (under 120 words) that references something real and specific from the above — not generic cheerleading. If there's nothing much logged yet, keep it welcoming and forward-looking instead of forcing false specifics. Sign off as "— Your coaching team". No headers, just the note.`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 300,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!res.ok) return;
+    const data = await res.json();
+    const text = (data.content || []).map((b: any) => b.text || "").join("");
+    if (!text.trim()) return;
+
+    await prisma.user.update({
+      where: { id: clientId },
+      data: { clientMessage: text.trim(), clientMessageUpdatedAt: new Date() },
+    });
+  } catch {
+    // Message generation failing should never block the actual save.
+  }
+}
+
+// Convenience wrapper — refreshes both the coach-facing briefings and the
+// client-facing personal note in one call.
+export async function refreshAllInsights(clientId: string) {
+  await Promise.all([refreshAllBusinessInsights(clientId), refreshClientMessage(clientId)]);
+}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { refreshAllBusinessInsights } from "@/lib/insights";
+import { refreshAllInsights } from "@/lib/insights";
 import { notifyNewWin } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     data: { clientId, content: content.trim() },
   });
 
-  await refreshAllBusinessInsights(clientId);
+  await refreshAllInsights(clientId);
   await notifyNewWin(clientId, session.user.id, content.trim());
 
   return NextResponse.json(win, { status: 201 });

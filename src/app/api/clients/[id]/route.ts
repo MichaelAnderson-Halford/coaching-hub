@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { refreshAllBusinessInsights } from "@/lib/insights";
+import { refreshAllInsights } from "@/lib/insights";
 
 function canAccess(session: any, clientId: string) {
   if (!session) return false;
@@ -22,10 +22,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       id: true,
       name: true,
       email: true,
+      createdAt: true,
       nextMeetingAt: true,
       zoomLink: true,
       archivedAt: true,
       ninetyDayPlan: true,
+      clientMessage: true,
+      clientMessageUpdatedAt: true,
       notesAsClient: {
         orderBy: { createdAt: "desc" },
         include: { author: { select: { name: true } } },
@@ -82,7 +85,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   });
 
   if (typeof body.ninetyDayPlan === "string") {
-    await refreshAllBusinessInsights(params.id);
+    await refreshAllInsights(params.id);
   }
 
   return NextResponse.json(updated);

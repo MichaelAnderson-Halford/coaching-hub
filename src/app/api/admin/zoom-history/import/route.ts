@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getZoomAccessToken } from "@/lib/zoom";
-import { refreshAllBusinessInsights } from "@/lib/insights";
+import { refreshAllInsights } from "@/lib/insights";
 
 function encodeUuid(uuid: string): string {
   return encodeURIComponent(encodeURIComponent(uuid));
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  await refreshAllBusinessInsights(clientId);
+  await refreshAllInsights(clientId);
 
   return NextResponse.json(note, { status: 201 });
 }

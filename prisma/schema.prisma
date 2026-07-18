@@ -32,6 +32,11 @@ model User {
   // session.
   reminderSentForMeetingAt DateTime?
 
+  // A warm, personal note written directly TO the client (not the coach
+  // briefing) — refreshed automatically alongside the AI briefing.
+  clientMessage          String?   @db.Text
+  clientMessageUpdatedAt DateTime?
+
   businesses     Business[]
   notesAsClient  Note[]     @relation("ClientNotes")
   notesAsAuthor  Note[]     @relation("AuthorNotes")
