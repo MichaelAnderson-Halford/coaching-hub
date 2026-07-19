@@ -30,7 +30,7 @@ type ClientDetail = {
   zoomLink: string | null;
   archivedAt: string | null;
   ninetyDayPlan: string | null;
-  notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
+  notesAsClient: { id: string; content: string; createdAt: string; isPrivate: boolean; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
   homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean }[];
@@ -48,6 +48,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
 
   const [noteDraft, setNoteDraft] = useState("");
+  const [notePrivate, setNotePrivate] = useState(false);
   const [winDraft, setWinDraft] = useState("");
   const [resourceDraft, setResourceDraft] = useState({ title: "", url: "", description: "" });
   const [zoomLink, setZoomLink] = useState("");
@@ -131,9 +132,10 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     await fetch("/api/notes", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: params.clientId, content: noteDraft }),
+      body: JSON.stringify({ clientId: params.clientId, content: noteDraft, isPrivate: notePrivate }),
     });
     setNoteDraft("");
+    setNotePrivate(false);
     load();
   }
 
@@ -407,19 +409,30 @@ export default function AdminClientPage({ params }: { params: { clientId: string
           <section className="bg-panel border border-line rounded-card p-6 mb-6">
             <h2 className="font-display text-lg mb-4">Add to the timeline</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              <form onSubmit={addNote} className="flex gap-2">
-                <input
-                  value={noteDraft}
-                  onChange={(e) => setNoteDraft(e.target.value)}
-                  placeholder="Add a note from this session…"
-                  className="focus-ring flex-1 rounded-md border border-line px-3 py-2 text-sm"
-                />
-                <button
-                  type="submit"
-                  className="focus-ring rounded-md bg-teal text-white text-sm px-3 py-2 hover:bg-teal-dark"
-                >
-                  Add
-                </button>
+              <form onSubmit={addNote} className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="Add a note from this session…"
+                    className="focus-ring flex-1 rounded-md border border-line px-3 py-2 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="focus-ring rounded-md bg-teal text-white text-sm px-3 py-2 hover:bg-teal-dark"
+                  >
+                    Add
+                  </button>
+                </div>
+                <label className="flex items-center gap-2 text-xs text-ink/50 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notePrivate}
+                    onChange={(e) => setNotePrivate(e.target.checked)}
+                    className="accent-teal"
+                  />
+                  🔒 Private — coach only, client never sees this
+                </label>
               </form>
               <form onSubmit={addWin} className="flex gap-2">
                 <input

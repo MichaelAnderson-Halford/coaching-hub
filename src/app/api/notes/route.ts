@@ -10,13 +10,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
-  const { clientId, content } = await req.json();
+  const { clientId, content, isPrivate } = await req.json();
   if (!clientId || !content?.trim()) {
     return NextResponse.json({ error: "Missing clientId or content" }, { status: 400 });
   }
 
   const note = await prisma.note.create({
-    data: { clientId, content: content.trim(), authorId: session.user.id },
+    data: { clientId, content: content.trim(), authorId: session.user.id, isPrivate: !!isPrivate },
     include: { author: { select: { name: true } } },
   });
 

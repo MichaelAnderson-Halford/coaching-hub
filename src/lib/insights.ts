@@ -116,7 +116,11 @@ export async function refreshClientMessage(clientId: string) {
     select: {
       name: true,
       wins: { orderBy: { createdAt: "desc" }, take: 5 },
-      notesAsClient: { orderBy: { createdAt: "desc" }, take: 5 },
+      notesAsClient: {
+        where: { isPrivate: false },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      },
       businesses: {
         select: {
           name: true,

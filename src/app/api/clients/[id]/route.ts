@@ -16,6 +16,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
+  const isAdminViewing = session?.user.role === "ADMIN";
+
   const client = await prisma.user.findUnique({
     where: { id: params.id, role: "CLIENT" },
     select: {
@@ -30,6 +32,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       clientMessage: true,
       clientMessageUpdatedAt: true,
       notesAsClient: {
+        where: isAdminViewing ? {} : { isPrivate: false },
         orderBy: { createdAt: "desc" },
         include: { author: { select: { name: true } } },
       },

@@ -71,6 +71,9 @@ model Business {
 model Note {
   id        String   @id @default(cuid())
   content   String
+  // Private notes never appear on the client's own dashboard — for the
+  // coach's internal thinking only.
+  isPrivate Boolean  @default(false)
   createdAt DateTime @default(now())
 
   client   User   @relation("ClientNotes", fields: [clientId], references: [id], onDelete: Cascade)

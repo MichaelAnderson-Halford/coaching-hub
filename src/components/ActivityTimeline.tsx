@@ -1,6 +1,6 @@
 "use client";
 
-type Note = { id: string; content: string; createdAt: string; author: { name: string } };
+type Note = { id: string; content: string; createdAt: string; isPrivate?: boolean; author: { name: string } };
 type Win = { id: string; content: string; createdAt: string };
 type MetricEntry = { id: string; value: number; recordedAt: string };
 type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
@@ -12,6 +12,7 @@ type TimelineItem = {
   createdAt: string;
   content: string;
   meta: string;
+  isPrivate?: boolean;
 };
 
 function buildTimeline(notes: Note[], wins: Win[], businesses: Business[]): TimelineItem[] {
@@ -24,6 +25,7 @@ function buildTimeline(notes: Note[], wins: Win[], businesses: Business[]): Time
       createdAt: n.createdAt,
       content: n.content.replace(/\[\[zoom:[^\]]+\]\]/g, "").trim(),
       meta: n.author.name,
+      isPrivate: n.isPrivate,
     });
   }
 
@@ -84,6 +86,7 @@ export default function ActivityTimeline({
         >
           <p className="whitespace-pre-wrap">
             <span className="mr-1">{STYLES[item.type].icon}</span>
+            {item.isPrivate && <span className="mr-1" title="Private — coach only">🔒</span>}
             {item.content}
           </p>
           <p className="text-xs text-ink/40 font-mono mt-1">
