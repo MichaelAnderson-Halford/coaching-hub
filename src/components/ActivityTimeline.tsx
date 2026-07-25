@@ -74,7 +74,12 @@ export default function ActivityTimeline({
   const items = buildTimeline(notes, wins, businesses);
 
   if (items.length === 0) {
-    return <p className="text-sm text-ink/40 italic">Nothing logged yet.</p>;
+    return (
+      <div className="text-center py-6">
+        <p className="font-medium text-ink">Nothing logged yet</p>
+        <p className="text-xs text-ink/50 mt-1">Notes, wins, and metric updates will show up here as you add them.</p>
+      </div>
+    );
   }
 
   return (

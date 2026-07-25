@@ -137,9 +137,10 @@ export default function MetricsSection({ businessId }: { businessId: string }) {
       )}
 
       {metrics.length === 0 ? (
-        <p className="text-sm text-ink/40 italic">
-          No metrics yet. Add one above to start tracking.
-        </p>
+        <div className="text-center py-6">
+          <p className="font-medium text-ink">No metrics yet</p>
+          <p className="text-xs text-ink/50 mt-1">Add a metric above to start tracking progress here.</p>
+        </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2">
           {metrics.map((m) => (

@@ -10,6 +10,9 @@ import ActivityTimeline from "@/components/ActivityTimeline";
 import HomeworkSection from "@/components/HomeworkSection";
 import SessionLog from "@/components/SessionLog";
 import PlanEditor from "@/components/PlanEditor";
+import ClientSummaryHeader, {
+  computeTabBadges,
+} from "@/components/ClientSummaryHeader";
 
 type MetricEntry = { id: string; value: number; recordedAt: string };
 type Metric = { id: string; name: string; unit: string | null; entries: MetricEntry[] };
@@ -22,10 +25,19 @@ type BusinessDetail = {
   metrics: Metric[];
 };
 
+type ThreadMessage = {
+  id: string;
+  content: string;
+  createdAt: string;
+  readByCoach: boolean;
+  senderId: string;
+};
+
 type ClientDetail = {
   id: string;
   name: string;
   email: string;
+  createdAt: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
   archivedAt: string | null;
@@ -36,6 +48,8 @@ type ClientDetail = {
   homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean; businessId: string | null }[];
   sessions: { id: string; sessionNumber: number; date: string; durationMinutes: number | null; summary: string }[];
   businesses: BusinessDetail[];
+  threadMessages: ThreadMessage[];
+  plan: { id: string } | null;
 };
 
 const TABS = ["Overview", "Plan", "Businesses", "Timeline", "Projects"] as const;
@@ -78,6 +92,19 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.clientId]);
+
+  // Mark this client's messages as read by the coach once we land on the
+  // Overview tab (where Messages lives) or the Messages panel is in view.
+  useEffect(() => {
+    if (activeTab === "Overview" && client?.threadMessages.some((m) => !m.readByCoach)) {
+      fetch(`/api/clients/${params.clientId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markMessagesRead: true }),
+      }).then(() => load());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, client?.id]);
 
   function toLocalInput(iso: string) {
     const d = new Date(iso);
@@ -202,9 +229,21 @@ export default function AdminClientPage({ params }: { params: { clientId: string
     router.push("/admin");
   }
 
+
+  async function resendInvite() {
+    if (!confirm(`Send ${client?.name} a new password-setup link by email?`)) return;
+    const res = await fetch(`/api/clients/${params.clientId}/resend-invite`, { method: "POST" });
+    if (res.ok) {
+      alert("Invite sent.");
+    } else {
+      alert("Something went wrong sending the invite.");
+    }
+  }
   if (!client) {
     return <main className="px-6 py-10 max-w-4xl mx-auto text-sm text-ink/40">Loading…</main>;
   }
+
+  const badges = computeTabBadges(client, session?.user?.id);
 
   return (
     <main className="min-h-screen px-6 py-10 max-w-4xl mx-auto">
@@ -213,26 +252,43 @@ export default function AdminClientPage({ params }: { params: { clientId: string
           ← All clients
         </Link>
         <button
+          onClick={resendInvite}
+          className="focus-ring text-sm text-ink/40 hover:text-teal transition-colors mr-4"
+        >
+          Resend invite
+        </button>
+        <button
           onClick={archiveClient}
           className="focus-ring text-sm text-ink/40 hover:text-red-700 transition-colors"
         >
           Archive client
         </button>
       </div>
-      <h1 className="font-display text-3xl text-ink mt-2 mb-6">{client.name}</h1>
+
+      <div className="mt-2 mb-6">
+        <ClientSummaryHeader
+          name={client.name}
+          createdAt={client.createdAt}
+          sessionCount={client.sessions.length}
+          nextMeetingAt={client.nextMeetingAt}
+        />
+      </div>
 
       <div className="flex flex-wrap gap-2 mb-8 border-b border-line pb-4">
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`focus-ring rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`focus-ring relative rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
               tab === activeTab
                 ? "bg-teal text-white"
                 : "bg-panel border border-line text-ink/70 hover:border-teal"
             }`}
           >
             {tab}
+            {tab !== "Overview" && badges[tab as keyof typeof badges] && (
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-pink-500 border-2 border-paper" />
+            )}
           </button>
         ))}
       </div>
@@ -315,25 +371,34 @@ export default function AdminClientPage({ params }: { params: { clientId: string
                   Add resource
                 </button>
               </form>
-              <ul className="space-y-3 max-h-72 overflow-y-auto">
-                {client.resources.map((r) => (
-                  <li key={r.id} className="text-sm">
-                    {r.url ? (
-                      <a
-                        href={r.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-teal underline underline-offset-2"
-                      >
-                        {r.title}
-                      </a>
-                    ) : (
-                      <p className="font-medium">{r.title}</p>
-                    )}
-                    {r.description && <p className="text-ink/60 text-xs mt-0.5">{r.description}</p>}
-                  </li>
-                ))}
-              </ul>
+              {client.resources.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="font-medium text-sm text-ink">Nothing shared yet</p>
+                  <p className="text-xs text-ink/50 mt-1 mb-3">
+                    Add a link or file for {client.name.split(" ")[0]} to reference between sessions.
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-3 max-h-72 overflow-y-auto">
+                  {client.resources.map((r) => (
+                    <li key={r.id} className="text-sm">
+                      {r.url ? (
+                        <a
+                          href={r.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-teal underline underline-offset-2"
+                        >
+                          {r.title}
+                        </a>
+                      ) : (
+                        <p className="font-medium">{r.title}</p>
+                      )}
+                      {r.description && <p className="text-ink/60 text-xs mt-0.5">{r.description}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
             <section className="bg-panel border border-line rounded-card p-6">

@@ -45,7 +45,7 @@ export default function BusinessBlock({
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && saveName()}
-              className="focus-ring flex-1 rounded-md border border-line px-3 py-1.5 text-lg font-display bg-white"
+              className="focus-ring flex-1 rounded-md border border-line px-3 py-1.5 text-lg font-display"
             />
             <button
               onClick={saveName}

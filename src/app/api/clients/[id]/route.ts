@@ -53,6 +53,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
           },
         },
       },
+      threadMessages: {
+        orderBy: { createdAt: "desc" },
+        select: { id: true, content: true, createdAt: true, readByCoach: true, senderId: true },
+      },
+      plan: { select: { id: true } },
     },
   });
 
@@ -67,6 +72,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json();
+
+  if (body.markMessagesRead === true) {
+    await prisma.message.updateMany({
+      where: { clientId: params.id, readByCoach: false },
+      data: { readByCoach: true },
+    });
+    return NextResponse.json({ ok: true });
+  }
+
   const data: {
     zoomLink?: string;
     nextMeetingAt?: Date | null;
@@ -88,7 +102,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   });
 
   if (typeof body.ninetyDayPlan === "string") {
-    await refreshAllInsights(params.id);
+    refreshAllInsights(params.id).catch(() => {});
   }
 
   return NextResponse.json(updated);

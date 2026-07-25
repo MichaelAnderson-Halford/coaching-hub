@@ -186,7 +186,7 @@ export default function HomeworkSection({
       )}
 
       {items.length === 0 && (
-        <p className="text-sm text-ink/40 italic mb-2">Nothing outstanding.</p>
+        <div className="text-center py-6"><p className="font-medium text-ink">Nothing due yet</p><p className="text-xs text-ink/50 mt-1">Give this client something to work on before the next session.</p></div>
       )}
 
       {groups.map((group) => {

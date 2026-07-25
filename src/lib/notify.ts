@@ -83,3 +83,36 @@ export async function sendSessionReminder(clientId: string, clientName: string, 
     )
   );
 }
+
+export async function sendProjectReminder(
+  clientId: string,
+  clientName: string,
+  items: { title: string; dueDate: Date; overdue: boolean }[]
+) {
+  const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
+  const client = await prisma.user.findUnique({ where: { id: clientId }, select: { email: true } });
+
+  const recipients = [...admins.map((a: { email: string }) => a.email), client?.email].filter(
+    Boolean
+  ) as string[];
+  const safeName = escapeHtml(clientName);
+  const link = `${appUrl()}/admin/${clientId}`;
+
+  const listHtml = items
+    .map((i) => {
+      const when = i.dueDate.toLocaleDateString(undefined, { month: "long", day: "numeric" });
+      const label = i.overdue ? `overdue (was due ${when})` : `due ${when}`;
+      return `<li>${escapeHtml(i.title)} — <strong>${label}</strong></li>`;
+    })
+    .join("");
+
+  await Promise.all(
+    recipients.map((email) =>
+      sendEmail({
+        to: email,
+        subject: `Project reminder for ${safeName}`,
+        html: `<p>${safeName} has ${items.length} project${items.length === 1 ? "" : "s"} needing attention:</p><ul>${listHtml}</ul><p><a href="${link}">View in the Coaching Hub</a></p>`,
+      })
+    )
+  );
+}

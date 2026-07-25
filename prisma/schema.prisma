@@ -47,6 +47,7 @@ model User {
   plan           Plan?
   sentMessages   Message[]  @relation("SentMessages")
   threadMessages Message[]  @relation("ClientThread")
+  passwordResetTokens PasswordResetToken[]
 }
 
 // One of a client's businesses/ventures. Most clients have exactly one —
@@ -145,6 +146,7 @@ model Message {
   id        String   @id @default(cuid())
   content   String
   createdAt DateTime @default(now())
+  readByCoach Boolean  @default(false)
 
   sender   User   @relation("SentMessages", fields: [senderId], references: [id])
   senderId String
@@ -248,4 +250,15 @@ model PlanKpi {
 
   section   PlanSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   sectionId String
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
 }
