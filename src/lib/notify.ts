@@ -116,3 +116,61 @@ export async function sendProjectReminder(
     )
   );
 }
+
+export async function sendWelcomeResendEmail(
+  clientId: string,
+  clientName: string,
+  clientEmail: string
+) {
+  const crypto = await import("crypto");
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours, more generous for a bulk resend
+
+  await prisma.passwordResetToken.create({
+    data: { token, expiresAt, userId: clientId },
+  });
+
+  const resetUrl = `${appUrl()}/reset-password/${token}`;
+  const firstName = clientName.split(" ")[0];
+  const site = "www.thecoachinghub.providerpro.co.uk";
+
+  const html = `
+    <p>Hi ${escapeHtml(firstName)},</p>
+    <p>Big news — Michael has been quietly grinding away behind the scenes for weeks, building something truly next-level just for you, and today it finally launches: Coaching Hub is LIVE!</p>
+    <p>This isn't just another login page — it's a whole new home for our work together. Built from scratch, designed with you in mind, and packed with everything you need to stay on track and crush your goals. We could not be more excited to hand you the keys.</p>
+    <p><strong>Welcome aboard — your account is set up and ready to go!</strong></p>
+    <p>Coaching Hub is your personal dashboard for everything happening in our work together — session details, homework and projects, and updates, all in one place.</p>
+
+    <p><strong>Your Login Details</strong></p>
+    <ul>
+      <li>Website: ${escapeHtml(site)}</li>
+      <li>Username: ${escapeHtml(clientEmail)}</li>
+    </ul>
+    <p><a href="${resetUrl}">Set your password</a> to finish setting up your account. This link expires in 24 hours.</p>
+
+    <p><strong>Getting Started</strong></p>
+    <ol>
+      <li>Click the link above to set your password.</li>
+      <li>Sign in at ${escapeHtml(site)}.</li>
+      <li>Take a look around your dashboard to get familiar with your space.</li>
+    </ol>
+
+    <p><strong>How to Use Coaching Hub</strong></p>
+    <ul>
+      <li><strong>Dashboard:</strong> Your home base — a quick overview of your activity and what's coming up.</li>
+      <li><strong>Projects:</strong> This is where your homework and action items live, grouped by project so it's easy to track what belongs to what. If you're working across more than one area with us, you'll see a dropdown to switch between them.</li>
+      <li><strong>Sessions:</strong> Details on your upcoming coaching calls, including Zoom links, will show up here.</li>
+      <li><strong>Notifications:</strong> You'll get email updates for key activity (like new homework or session reminders) sent to the address on file — no need to keep checking back manually.</li>
+    </ul>
+
+    <p>If anything looks off or you have questions getting started, just reply to this email and we'll sort it out.</p>
+    <p>Welcome to the future of our coaching journey together!</p>
+    <p>Warm regards,<br/>Michael Anderson-Halford<br/>Provider Pro / Coaching Hub</p>
+  `;
+
+  await sendEmail({
+    to: clientEmail,
+    subject: "It's Here — Welcome to Coaching Hub!",
+    html,
+  });
+}

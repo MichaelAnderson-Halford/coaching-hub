@@ -149,6 +149,22 @@ export default function AdminPage() {
     loadAdmins();
   }
 
+  async function resendWelcomeToAll() {
+    if (
+      !confirm(
+        "Send the welcome email with a password-setup link to every active client? This will email all of them at once."
+      )
+    )
+      return;
+    const res = await fetch("/api/admin/resend-welcome-all", { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      alert(`Sent to ${data.sent} client(s).`);
+    } else {
+      alert("Something went wrong sending the emails.");
+    }
+  }
+
   return (
     <main className="min-h-screen px-6 py-10 max-w-4xl mx-auto">
       <header className="flex items-center justify-between mb-10">
@@ -163,6 +179,12 @@ export default function AdminPage() {
           >
             Import Zoom history
           </Link>
+          <button
+            onClick={resendWelcomeToAll}
+            className="focus-ring text-sm text-ink/50 hover:text-ink underline underline-offset-4"
+          >
+            Resend welcome to all clients
+          </button>
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
             className="focus-ring text-sm text-ink/50 hover:text-ink underline underline-offset-4"
