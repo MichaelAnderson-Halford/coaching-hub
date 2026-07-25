@@ -11,7 +11,7 @@ export async function GET() {
   }
 
   const admins = await prisma.user.findMany({
-    where: { role: "ADMIN" },
+    where: { role: "ADMIN", organizationId: session.user.organizationId },
     orderBy: { name: "asc" },
     select: { id: true, name: true, email: true },
   });
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
       email: email.toLowerCase().trim(),
       passwordHash,
       role: "ADMIN",
+      organizationId: session.user.organizationId,
     },
     select: { id: true, name: true, email: true },
   });

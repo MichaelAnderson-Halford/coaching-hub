@@ -18,6 +18,8 @@ model User {
   passwordHash String
   name         String
   role         Role     @default(CLIENT)
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
   // Fields only relevant when role = CLIENT — shared across all of a
@@ -261,4 +263,15 @@ model PasswordResetToken {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
+}
+
+model Organization {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  customDomain String?  @unique
+  plan         String   @default("free")
+  createdAt    DateTime @default(now())
+
+  users User[]
 }

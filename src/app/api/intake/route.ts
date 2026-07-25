@@ -35,6 +35,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // TEMPORARY: this public intake form doesn't yet know which organization
+  // it belongs to, since domain-based org resolution (Phase 2 of the
+  // multi-tenant rebuild) hasn't been built. Until then, every signup via
+  // this form is assigned to the Provider Pro org specifically. This must
+  // be replaced with a proper per-domain org lookup before this form is
+  // used by any other organization.
+  const org = await prisma.organization.findUnique({ where: { slug: "providerpro" } });
+  if (!org) {
+    return NextResponse.json({ error: "Signup is not available right now" }, { status: 500 });
+  }
+
   const password = generatePassword();
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -44,6 +55,7 @@ export async function POST(req: NextRequest) {
       email: normalizedEmail,
       passwordHash,
       role: "CLIENT",
+      organizationId: org.id,
     },
     select: { id: true, name: true, email: true },
   });
@@ -53,7 +65,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (goals?.trim()) {
-    const author = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+    const author = await prisma.user.findFirst({ where: { role: "ADMIN", organizationId: org.id } });
     if (author) {
       await prisma.note.create({
         data: {
@@ -65,18 +77,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Email the client their login details, and let the coaches know someone
-  // new signed up.
   const safeFirstName = escapeHtml(client.name.split(" ")[0]);
   await sendEmail({
     to: client.email,
     subject: "Welcome to Provider Pro Coaching Hub",
-    html: `<p>Hi ${safeFirstName},</p><p>Your account is ready. Here's how to sign in:</p><p>Email: ${escapeHtml(client.email)}<br/>Password: <strong>${escapeHtml(password)}</strong></p><p>${escapeHtml(process.env.NEXTAUTH_URL || "")}</p>`,
+    html: `<p>Hi ${safeFirstName},</p><p>Your account is ready. Here's how to sign in:</p><p>Email: ${escapeHtml(client.email)}<br/>Password: <strong>${escapeHtml(password)}</strong></p><p>${process.env.NEXTAUTH_URL || ""}</p>`,
   });
 
   const safeName = escapeHtml(client.name);
   const safeGoals = goals?.trim() ? escapeHtml(goals.trim()) : null;
-  const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
+  const admins = await prisma.user.findMany({
+    where: { role: "ADMIN", organizationId: org.id },
+    select: { email: true },
+  });
   await Promise.all(
     admins.map((a: { email: string }) =>
       sendEmail({

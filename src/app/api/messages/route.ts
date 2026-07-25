@@ -3,17 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notifyNewMessage } from "@/lib/notify";
-
-function canAccess(session: any, clientId: string) {
-  if (!session) return false;
-  if (session.user.role === "ADMIN") return true;
-  return session.user.id === clientId;
-}
+import { checkOrgAccess } from "@/lib/access";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const clientId = req.nextUrl.searchParams.get("clientId");
-  if (!clientId || !canAccess(session, clientId)) {
+  if (!clientId || !(await checkOrgAccess(session, clientId))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
@@ -30,7 +25,7 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const { clientId, content } = await req.json();
 
-  if (!clientId || !content?.trim() || !canAccess(session, clientId)) {
+  if (!clientId || !content?.trim() || !(await checkOrgAccess(session, clientId))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

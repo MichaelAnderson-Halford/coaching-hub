@@ -2,16 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-function canAccess(session: any, clientId: string) {
-  if (!session) return false;
-  if (session.user.role === "ADMIN") return true;
-  return session.user.id === clientId;
-}
+import { checkOrgAccess } from "@/lib/access";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!canAccess(session, params.id)) {
+  if (!(await checkOrgAccess(session, params.id))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
@@ -36,6 +31,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!session || session.user.role !== "ADMIN") {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
+  if (!(await checkOrgAccess(session, params.id))) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
+  }
 
   const body = await req.json();
   const { quarterLabel, startDate, endDate, advisorName, sections } = body;
@@ -44,8 +42,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: "Missing quarterLabel or sections" }, { status: 400 });
   }
 
-  // Simplest reliable approach for deeply nested data: replace the whole
-  // document in one transaction rather than diffing individual items.
   const plan = await prisma.$transaction(async (tx: any) => {
     await tx.plan.deleteMany({ where: { clientId: params.id } });
 

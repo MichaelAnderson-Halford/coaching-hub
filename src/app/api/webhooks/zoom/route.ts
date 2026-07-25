@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       );
 
       if (matched) {
-        const author = await prisma.user.findFirst({ where: { role: "ADMIN" } });
+        const author = await prisma.user.findFirst({ where: { role: "ADMIN", organizationId: matched.organizationId } });
 
         if (author) {
           const details = Array.isArray(obj.summary_details)

@@ -2,12 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-function canAccess(session: any, clientId: string) {
-  if (!session) return false;
-  if (session.user.role === "ADMIN") return true;
-  return session.user.id === clientId;
-}
+import { checkOrgAccess } from "@/lib/access";
 
 export async function PATCH(
   req: NextRequest,
@@ -16,7 +11,7 @@ export async function PATCH(
   const session = await getServerSession(authOptions);
 
   const business = await prisma.business.findUnique({ where: { id: params.businessId } });
-  if (!business || !canAccess(session, business.clientId)) {
+  if (!business || !(await checkOrgAccess(session, business.clientId))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
@@ -44,6 +39,9 @@ export async function DELETE(
   const business = await prisma.business.findUnique({ where: { id: params.businessId } });
   if (!business) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (!(await checkOrgAccess(session, business.clientId))) {
+    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
   const count = await prisma.business.count({ where: { clientId: business.clientId } });

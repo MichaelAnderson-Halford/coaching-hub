@@ -2,22 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-function canAccess(session: any, clientId: string) {
-  if (!session) return false;
-  if (session.user.role === "ADMIN") return true;
-  return session.user.id === clientId;
-}
+import { checkOrgAccess } from "@/lib/access";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   const { clientId, title, dueDate, items, businessId } = await req.json();
 
-  if (!clientId || !canAccess(session, clientId)) {
+  if (!clientId || !(await checkOrgAccess(session, clientId))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
-  // Bulk mode: an array of plain title strings, e.g. pasted from Zoom notes.
   if (Array.isArray(items)) {
     const titles = items.map((t: string) => t.trim()).filter(Boolean);
     if (titles.length === 0) {

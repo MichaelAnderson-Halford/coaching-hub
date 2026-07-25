@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
   const clients = await prisma.user.findMany({
     where: {
       role: "CLIENT",
+      organizationId: session.user.organizationId,
       archivedAt: showArchived ? { not: null } : null,
     },
     orderBy: { name: "asc" },
@@ -95,12 +96,11 @@ export async function POST(req: NextRequest) {
       email: email.toLowerCase().trim(),
       passwordHash,
       role: "CLIENT",
+      organizationId: session.user.organizationId,
     },
     select: { id: true, name: true, email: true },
   });
 
-  // Every client starts with one default business — the UI only shows a
-  // switcher once a second one gets added.
   await prisma.business.create({
     data: { clientId: client.id, name: `${name}'s Business` },
   });

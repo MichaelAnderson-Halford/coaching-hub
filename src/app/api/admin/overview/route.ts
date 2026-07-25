@@ -11,6 +11,7 @@ export async function GET() {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
+  const orgId = session.user.organizationId;
   const now = Date.now();
 
   type ClientRow = {
@@ -24,7 +25,7 @@ export async function GET() {
   };
 
   const clients: ClientRow[] = await prisma.user.findMany({
-    where: { role: "CLIENT", archivedAt: null },
+    where: { role: "CLIENT", archivedAt: null, organizationId: orgId },
     select: {
       id: true,
       name: true,
@@ -63,16 +64,19 @@ export async function GET() {
 
   const [recentNotes, recentWins, recentMessages] = await Promise.all([
     prisma.note.findMany({
+      where: { client: { organizationId: orgId } },
       orderBy: { createdAt: "desc" },
       take: 15,
       include: { client: { select: { name: true } }, author: { select: { name: true } } },
     }),
     prisma.win.findMany({
+      where: { client: { organizationId: orgId } },
       orderBy: { createdAt: "desc" },
       take: 15,
       include: { client: { select: { name: true } } },
     }),
     prisma.message.findMany({
+      where: { client: { organizationId: orgId } },
       orderBy: { createdAt: "desc" },
       take: 15,
       include: { client: { select: { name: true } }, sender: { select: { name: true, role: true } } },

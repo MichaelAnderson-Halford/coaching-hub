@@ -11,7 +11,11 @@ export async function POST() {
   }
 
   const clients = await prisma.user.findMany({
-    where: { role: "CLIENT", archivedAt: null },
+    where: {
+      role: "CLIENT",
+      archivedAt: null,
+      organizationId: session.user.organizationId,
+    },
     select: { id: true, name: true, email: true },
   });
 

@@ -6,11 +6,21 @@ function appUrl() {
   return process.env.NEXTAUTH_URL || "";
 }
 
+async function getOrgAdmins(organizationId: string) {
+  return prisma.user.findMany({
+    where: { role: "ADMIN", organizationId },
+    select: { id: true, name: true, email: true },
+  });
+}
+
 async function getRecipients(clientId: string, excludeUserId: string) {
-  const [client, admins] = await Promise.all([
-    prisma.user.findUnique({ where: { id: clientId }, select: { id: true, name: true, email: true } }),
-    prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true, name: true, email: true } }),
-  ]);
+  const client = await prisma.user.findUnique({
+    where: { id: clientId },
+    select: { id: true, name: true, email: true, organizationId: true },
+  });
+  if (!client) return [];
+
+  const admins = await getOrgAdmins(client.organizationId);
 
   const all = [client, ...admins].filter(
     (u): u is { id: string; name: string; email: string } => !!u && u.id !== excludeUserId
@@ -58,10 +68,14 @@ export async function notifyNewWin(clientId: string, creatorId: string, content:
 }
 
 export async function sendSessionReminder(clientId: string, clientName: string, meetingAt: Date, zoomLink: string | null) {
-  const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
-  const client = await prisma.user.findUnique({ where: { id: clientId }, select: { email: true } });
+  const client = await prisma.user.findUnique({
+    where: { id: clientId },
+    select: { email: true, organizationId: true },
+  });
+  if (!client) return;
 
-  const recipients = [...admins.map((a: { email: string }) => a.email), client?.email].filter(Boolean) as string[];
+  const admins = await getOrgAdmins(client.organizationId);
+  const recipients = [...admins.map((a: { email: string }) => a.email), client.email].filter(Boolean) as string[];
   const safeName = escapeHtml(clientName);
   const when = meetingAt.toLocaleString(undefined, {
     weekday: "long",
@@ -89,10 +103,14 @@ export async function sendProjectReminder(
   clientName: string,
   items: { title: string; dueDate: Date; overdue: boolean }[]
 ) {
-  const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { email: true } });
-  const client = await prisma.user.findUnique({ where: { id: clientId }, select: { email: true } });
+  const client = await prisma.user.findUnique({
+    where: { id: clientId },
+    select: { email: true, organizationId: true },
+  });
+  if (!client) return;
 
-  const recipients = [...admins.map((a: { email: string }) => a.email), client?.email].filter(
+  const admins = await getOrgAdmins(client.organizationId);
+  const recipients = [...admins.map((a: { email: string }) => a.email), client.email].filter(
     Boolean
   ) as string[];
   const safeName = escapeHtml(clientName);
@@ -124,7 +142,7 @@ export async function sendWelcomeResendEmail(
 ) {
   const crypto = await import("crypto");
   const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours, more generous for a bulk resend
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
   await prisma.passwordResetToken.create({
     data: { token, expiresAt, userId: clientId },

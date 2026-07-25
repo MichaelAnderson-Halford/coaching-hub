@@ -3,12 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { refreshBusinessInsight, refreshClientMessage } from "@/lib/insights";
-
-function canAccess(session: any, clientId: string) {
-  if (!session) return false;
-  if (session.user.role === "ADMIN") return true;
-  return session.user.id === clientId;
-}
+import { checkOrgAccess } from "@/lib/access";
 
 export async function POST(
   req: NextRequest,
@@ -21,7 +16,7 @@ export async function POST(
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
   const business = await prisma.business.findUnique({ where: { id: metric.businessId } });
-  if (!business || !canAccess(session, business.clientId)) {
+  if (!business || !(await checkOrgAccess(session, business.clientId))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
