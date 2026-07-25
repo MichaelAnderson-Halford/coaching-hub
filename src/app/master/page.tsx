@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 type OrgRow = {
   id: string;
@@ -45,13 +46,22 @@ function planBadge(org: OrgRow) {
 }
 
 export default function MasterPortalPage() {
+  const { update } = useSession();
+  const router = useRouter();
   const [data, setData] = useState<Overview | null>(null);
+  const [entering, setEntering] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/master/overview")
       .then((r) => r.json())
       .then(setData);
   }, []);
+
+  async function actAs(orgId: string) {
+    setEntering(orgId);
+    await update({ viewOrgId: orgId });
+    router.push("/admin");
+  }
 
   if (!data) {
     return <main className="px-6 py-10 max-w-5xl mx-auto text-sm text-ink/40">Loading…</main>;
@@ -97,6 +107,7 @@ export default function MasterPortalPage() {
               <th className="px-4 py-3">MRR</th>
               <th className="px-4 py-3">Last activity</th>
               <th className="px-4 py-3">Signed up</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -116,6 +127,15 @@ export default function MasterPortalPage() {
                 </td>
                 <td className="px-4 py-3 text-xs text-ink/60">
                   {new Date(org.createdAt).toLocaleDateString()}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => actAs(org.id)}
+                    disabled={entering !== null}
+                    className="focus-ring text-xs font-medium text-teal hover:text-teal-dark underline underline-offset-2 disabled:opacity-40"
+                  >
+                    {entering === org.id ? "Entering…" : "Act as →"}
+                  </button>
                 </td>
               </tr>
             ))}

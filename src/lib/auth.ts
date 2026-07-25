@@ -21,9 +21,6 @@ export const authOptions: NextAuthOptions = {
 
         const normalizedEmail = credentials.email.toLowerCase().trim();
 
-        // Cap login attempts per email to slow down credential-guessing —
-        // applies regardless of whether the account exists or the
-        // password is right, so it can't be used to enumerate accounts.
         const allowed = await checkRateLimit(`login:${normalizedEmail}`, 10, 15);
         if (!allowed) return null;
 
@@ -46,12 +43,29 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = (user as any).id;
         token.role = (user as any).role;
         token.organizationId = (user as any).organizationId;
+        // The org this account actually belongs to — never changes,
+        // regardless of which org a SUPERADMIN is currently viewing.
+        token.realOrganizationId = (user as any).organizationId;
       }
+
+      // Only a SUPERADMIN's own token can ever have its effective org
+      // swapped — this check runs against the token's original role,
+      // which is never itself changed by impersonation, so a regular
+      // admin can never trigger this branch no matter what they send.
+      if (trigger === "update" && token.role === "SUPERADMIN") {
+        if (session?.viewOrgId) {
+          token.organizationId = session.viewOrgId;
+        }
+        if (session?.exitImpersonation) {
+          token.organizationId = token.realOrganizationId;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -59,6 +73,9 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).organizationId = token.organizationId;
+        (session.user as any).realOrganizationId = token.realOrganizationId;
+        (session.user as any).isImpersonating =
+          token.organizationId !== token.realOrganizationId;
       }
       return session;
     },

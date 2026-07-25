@@ -10,6 +10,8 @@ declare module "next-auth" {
       email: string;
       role: Role;
       organizationId: string;
+      realOrganizationId: string;
+      isImpersonating: boolean;
     };
   }
 
@@ -25,5 +27,6 @@ declare module "next-auth/jwt" {
     id: string;
     role: Role;
     organizationId: string;
+    realOrganizationId: string;
   }
 }

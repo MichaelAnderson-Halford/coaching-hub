@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 type ClientSummary = {
   id: string;
@@ -43,6 +44,7 @@ type ActivityItem = {
 };
 
 export default function AdminPage() {
+  const { data: session, update } = useSession(); const router = useRouter(); async function exitImpersonation() { await update({ exitImpersonation: true }); router.push("/master"); }
   const [clients, setClients] = useState<ClientSummary[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -167,6 +169,12 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen px-6 py-10 max-w-4xl mx-auto">
+      {session?.user?.isImpersonating && (
+        <div className="bg-gold-light border border-gold rounded-card p-3 mb-6 flex items-center justify-between text-sm">
+          <span>You are viewing this organization as a superadmin.</span>
+          <button onClick={exitImpersonation} className="focus-ring font-medium underline underline-offset-2">Exit</button>
+        </div>
+      )}
       <header className="flex items-center justify-between mb-10">
         <div>
           <h1 className="font-display text-3xl text-ink">Clients</h1>
