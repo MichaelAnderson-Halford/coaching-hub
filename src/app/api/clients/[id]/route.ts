@@ -62,7 +62,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
   if (!(await checkOrgAccess(session, params.id))) {

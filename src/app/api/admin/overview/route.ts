@@ -7,7 +7,7 @@ const ATTENTION_THRESHOLD_DAYS = 14;
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user.role !== "ADMIN") {
+  if (!session || (session.user.role !== "ADMIN" && session.user.role !== "SUPERADMIN")) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

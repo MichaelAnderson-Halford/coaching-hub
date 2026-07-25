@@ -9,6 +9,7 @@ datasource db {
 
 enum Role {
   ADMIN
+  SUPERADMIN
   CLIENT
 }
 
@@ -270,7 +271,11 @@ model Organization {
   name         String
   slug         String   @unique
   customDomain String?  @unique
-  plan         String   @default("free")
+  plan               String    @default("trial")
+  trialEndsAt        DateTime?
+  stripeCustomerId   String?   @unique
+  stripeSubscriptionId String? @unique
+  subscriptionStatus String?
   createdAt    DateTime @default(now())
 
   users User[]
