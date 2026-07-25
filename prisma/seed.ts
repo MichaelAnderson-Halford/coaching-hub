@@ -6,6 +6,12 @@ const prisma = new PrismaClient();
 async function main() {
   const password = await bcrypt.hash("changeme123", 10);
 
+  const org = await prisma.organization.upsert({
+    where: { slug: "demo" },
+    update: {},
+    create: { name: "Demo Organization", slug: "demo", plan: "free" },
+  });
+
   const michael = await prisma.user.upsert({
     where: { email: "michael@example.com" },
     update: {},
@@ -14,6 +20,7 @@ async function main() {
       name: "Michael",
       role: Role.ADMIN,
       passwordHash: password,
+      organizationId: org.id,
     },
   });
 
@@ -25,6 +32,7 @@ async function main() {
       name: "Ben",
       role: Role.ADMIN,
       passwordHash: password,
+      organizationId: org.id,
     },
   });
 
@@ -36,6 +44,7 @@ async function main() {
       name: "Sample Client",
       role: Role.CLIENT,
       passwordHash: password,
+      organizationId: org.id,
       zoomLink: "https://zoom.us/j/1234567890",
       nextMeetingAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3),
     },
