@@ -65,7 +65,8 @@ model Business {
   client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId String
 
-  metrics Metric[]
+  metrics       Metric[]
+  homeworkItems HomeworkItem[]
 }
 
 model Note {
@@ -119,7 +120,9 @@ model Session {
 }
 
 // Small between-session commitments — either the coach or the client can
-// add these, and either side can check them off.
+// add these, and either side can check them off. Optionally scoped to one
+// of the client's businesses/projects, so the Homework tab can group by
+// project; homeworkItems with no businessId show under "General".
 model HomeworkItem {
   id          String    @id @default(cuid())
   title       String
@@ -130,6 +133,9 @@ model HomeworkItem {
 
   client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   clientId String
+
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  businessId String?
 }
 
 // Every message belongs to exactly one client's thread (shared across all

@@ -33,12 +33,12 @@ type ClientDetail = {
   notesAsClient: { id: string; content: string; createdAt: string; isPrivate: boolean; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
-  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean }[];
+  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean; businessId: string | null }[];
   sessions: { id: string; sessionNumber: number; date: string; durationMinutes: number | null; summary: string }[];
   businesses: BusinessDetail[];
 };
 
-const TABS = ["Overview", "Plan", "Businesses", "Timeline", "Homework"] as const;
+const TABS = ["Overview", "Plan", "Businesses", "Timeline", "Projects"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AdminClientPage({ params }: { params: { clientId: string } }) {
@@ -462,8 +462,13 @@ export default function AdminClientPage({ params }: { params: { clientId: string
         </>
       )}
 
-      {activeTab === "Homework" && (
-        <HomeworkSection clientId={client.id} items={client.homeworkItems} onChanged={load} />
+      {activeTab === "Projects" && (
+        <HomeworkSection
+          clientId={client.id}
+          items={client.homeworkItems}
+          businesses={client.businesses}
+          onChanged={load}
+        />
       )}
     </main>
   );

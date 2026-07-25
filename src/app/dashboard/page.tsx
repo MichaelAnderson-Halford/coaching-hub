@@ -34,7 +34,7 @@ type MyProfile = {
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
-  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean }[];
+  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean; businessId: string | null }[];
   businesses: BusinessDetail[];
 };
 
@@ -116,7 +116,7 @@ export default function DashboardPage() {
               {new Date(profile.nextMeetingAt).toLocaleString()}
             </p>
             {profile.zoomLink && (
-              <a
+              
                 href={profile.zoomLink}
                 target="_blank"
                 rel="noreferrer"
@@ -169,7 +169,12 @@ export default function DashboardPage() {
         />
       </section>
 
-      <HomeworkSection clientId={profile.id} items={profile.homeworkItems} onChanged={load} />
+      <HomeworkSection
+        clientId={profile.id}
+        items={profile.homeworkItems}
+        businesses={profile.businesses}
+        onChanged={load}
+      />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <section className="bg-panel border border-line rounded-card p-6">
@@ -181,7 +186,7 @@ export default function DashboardPage() {
             {profile.resources.map((r) => (
               <li key={r.id} className="text-sm">
                 {r.url ? (
-                  <a
+                  
                     href={r.url}
                     target="_blank"
                     rel="noreferrer"

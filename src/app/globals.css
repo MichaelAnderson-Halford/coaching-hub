@@ -29,3 +29,8 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+input, textarea, select {
+  background-color: #18181C !important;
+  color: #F5F5F7 !important;
+}

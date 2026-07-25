@@ -11,7 +11,7 @@ function canAccess(session: any, clientId: string) {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const { clientId, title, dueDate, items } = await req.json();
+  const { clientId, title, dueDate, items, businessId } = await req.json();
 
   if (!clientId || !canAccess(session, clientId)) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
@@ -24,7 +24,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No items to add" }, { status: 400 });
     }
     await prisma.homeworkItem.createMany({
-      data: titles.map((t: string) => ({ clientId, title: t })),
+      data: titles.map((t: string) => ({
+        clientId,
+        title: t,
+        businessId: businessId || null,
+      })),
     });
     return NextResponse.json({ created: titles.length }, { status: 201 });
   }
@@ -38,6 +42,7 @@ export async function POST(req: NextRequest) {
       clientId,
       title: title.trim(),
       dueDate: dueDate ? new Date(dueDate) : null,
+      businessId: businessId || null,
     },
   });
 
