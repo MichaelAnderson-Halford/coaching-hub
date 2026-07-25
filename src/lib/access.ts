@@ -17,6 +17,6 @@ export async function checkOrgAccess(session: any, clientId: string): Promise<bo
 
   if (target.organizationId !== session.user.organizationId) return false;
 
-  if (session.user.role === "ADMIN") return true;
+  if (session.user.role === "ADMIN" || session.user.role === "SUPERADMIN") return true;
   return session.user.id === clientId;
 }
