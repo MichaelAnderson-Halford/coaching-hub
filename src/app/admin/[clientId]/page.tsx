@@ -23,6 +23,7 @@ type BusinessDetail = {
   insight: string | null;
   insightUpdatedAt: string | null;
   metrics: Metric[];
+  projects: { id: string; name: string }[];
 };
 
 type ThreadMessage = {
@@ -45,7 +46,7 @@ type ClientDetail = {
   notesAsClient: { id: string; content: string; createdAt: string; isPrivate: boolean; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
-  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean; businessId: string | null }[];
+  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean; projectId: string | null; businessId: string | null }[];
   sessions: { id: string; sessionNumber: number; date: string; durationMinutes: number | null; summary: string }[];
   businesses: BusinessDetail[];
   threadMessages: ThreadMessage[];

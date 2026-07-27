@@ -20,6 +20,7 @@ type BusinessDetail = {
   insight: string | null;
   insightUpdatedAt: string | null;
   metrics: Metric[];
+  projects: { id: string; name: string }[];
 };
 
 type MyProfile = {
@@ -34,7 +35,7 @@ type MyProfile = {
   notesAsClient: { id: string; content: string; createdAt: string; author: { name: string } }[];
   wins: { id: string; content: string; createdAt: string }[];
   resources: { id: string; title: string; url: string | null; description: string | null }[];
-  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean; businessId: string | null }[];
+  homeworkItems: { id: string; title: string; dueDate: string | null; completed: boolean; projectId: string | null; businessId: string | null }[];
   businesses: BusinessDetail[];
 };
 

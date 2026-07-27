@@ -46,6 +46,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             orderBy: { createdAt: "asc" },
             include: { entries: { orderBy: { recordedAt: "asc" } } },
           },
+          projects: {
+            orderBy: { createdAt: "asc" },
+            select: { id: true, name: true },
+          },
         },
       },
       threadMessages: {
