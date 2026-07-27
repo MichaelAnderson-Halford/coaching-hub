@@ -51,6 +51,7 @@ export default function AdminPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [billing, setBilling] = useState<{ plan: string; trialEndsAt: string | null } | null>(null);
 
   const [admins, setAdmins] = useState<AdminSummary[]>([]);
   const [showCoachForm, setShowCoachForm] = useState(false);
@@ -114,6 +115,7 @@ export default function AdminPage() {
     load();
     loadAdmins();
     loadOverview();
+    fetch("/api/billing/status").then((r) => r.json()).then(setBilling).catch(() => {});
   }, []);
 
   async function createClient(e: React.FormEvent) {
@@ -202,6 +204,22 @@ export default function AdminPage() {
           </button>
         </div>
       </header>
+
+      {billing && billing.plan === "trial" && (
+        <div className="bg-gold-light border border-gold rounded-card p-4 mb-8 flex items-center justify-between flex-wrap gap-3">
+          <p className="text-sm text-ink/80">
+            {billing.trialEndsAt
+              ? `Your free trial ends ${new Date(billing.trialEndsAt).toLocaleDateString()}.`
+              : "You are on a free trial."}
+          </p>
+          <Link
+            href="/admin/billing"
+            className="focus-ring rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors"
+          >
+            Upgrade now
+          </Link>
+        </div>
+      )}
 
       {!overviewLoading && (
         <div className="grid gap-6 sm:grid-cols-2 mb-10">
