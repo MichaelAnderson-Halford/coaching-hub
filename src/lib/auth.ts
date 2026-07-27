@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { checkRateLimit } from "./rateLimit";
+import { resolveOrgFromHost } from "./tenant";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -16,7 +17,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
 
         const normalizedEmail = credentials.email.toLowerCase().trim();
@@ -31,6 +32,19 @@ export const authOptions: NextAuthOptions = {
 
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!valid) return null;
+
+        // Enforce tenant isolation by subdomain/custom domain: a
+        // SUPERADMIN can sign in from anywhere (they need cross-org
+        // access), but a regular user can only sign in from their own
+        // organization's subdomain or custom domain, or from the bare
+        // base domain (no specific tenant resolved).
+        if (user.role !== "SUPERADMIN") {
+          const hostHeader = req?.headers?.host as string | undefined;
+          const hostOrg = await resolveOrgFromHost(hostHeader || null);
+          if (hostOrg && hostOrg.id !== user.organizationId) {
+            return null;
+          }
+        }
 
         return {
           id: user.id,
@@ -48,15 +62,9 @@ export const authOptions: NextAuthOptions = {
         token.id = (user as any).id;
         token.role = (user as any).role;
         token.organizationId = (user as any).organizationId;
-        // The org this account actually belongs to — never changes,
-        // regardless of which org a SUPERADMIN is currently viewing.
         token.realOrganizationId = (user as any).organizationId;
       }
 
-      // Only a SUPERADMIN's own token can ever have its effective org
-      // swapped — this check runs against the token's original role,
-      // which is never itself changed by impersonation, so a regular
-      // admin can never trigger this branch no matter what they send.
       if (trigger === "update" && token.role === "SUPERADMIN") {
         if (session?.viewOrgId) {
           token.organizationId = session.viewOrgId;
