@@ -79,6 +79,37 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ ok: true });
   }
 
+  if (typeof body.name === "string" || typeof body.email === "string") {
+    const data: { name?: string; email?: string } = {};
+
+    if (typeof body.name === "string") {
+      if (!body.name.trim()) {
+        return NextResponse.json({ error: "Name can't be empty" }, { status: 400 });
+      }
+      data.name = body.name.trim();
+    }
+
+    if (typeof body.email === "string") {
+      const normalizedEmail = body.email.toLowerCase().trim();
+      if (!normalizedEmail) {
+        return NextResponse.json({ error: "Email can't be empty" }, { status: 400 });
+      }
+      const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+      if (existing && existing.id !== params.id) {
+        return NextResponse.json({ error: "That email is already in use" }, { status: 409 });
+      }
+      data.email = normalizedEmail;
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: params.id },
+      data,
+      select: { id: true, name: true, email: true },
+    });
+
+    return NextResponse.json(updated);
+  }
+
   const data: {
     zoomLink?: string;
     nextMeetingAt?: Date | null;

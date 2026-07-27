@@ -67,6 +67,10 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [resourceDraft, setResourceDraft] = useState({ title: "", url: "", description: "" });
   const [zoomLink, setZoomLink] = useState("");
   const [nextMeetingAt, setNextMeetingAt] = useState("");
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailsDraft, setDetailsDraft] = useState({ name: "", email: "" });
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const [savingDetails, setSavingDetails] = useState(false);
   const [importingZoom, setImportingZoom] = useState(false);
   const [importResult, setImportResult] = useState<string | null>(null);
 
@@ -85,6 +89,7 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       setClient(data);
       setZoomLink(data.zoomLink || "");
       setNextMeetingAt(data.nextMeetingAt ? toLocalInput(data.nextMeetingAt) : "");
+      setDetailsDraft({ name: data.name, email: data.email });
     }
   }
 
@@ -124,6 +129,25 @@ export default function AdminClientPage({ params }: { params: { clientId: string
         nextMeetingAt: nextMeetingAt ? new Date(nextMeetingAt).toISOString() : null,
       }),
     });
+    load();
+  }
+
+  async function saveDetails(e: React.FormEvent) {
+    e.preventDefault();
+    setDetailsError(null);
+    setSavingDetails(true);
+    const res = await fetch(`/api/clients/${params.clientId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: detailsDraft.name, email: detailsDraft.email }),
+    });
+    setSavingDetails(false);
+    if (!res.ok) {
+      const data = await res.json();
+      setDetailsError(data.error || "Something went wrong");
+      return;
+    }
+    setEditingDetails(false);
     load();
   }
 
@@ -295,6 +319,68 @@ export default function AdminClientPage({ params }: { params: { clientId: string
 
       {activeTab === "Overview" && (
         <>
+          <section className="bg-panel border border-line rounded-card p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-lg">Client details</h2>
+              {!editingDetails && (
+                <button
+                  onClick={() => setEditingDetails(true)}
+                  className="focus-ring text-xs text-ink/40 hover:text-teal underline underline-offset-2"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            {editingDetails ? (
+              <form onSubmit={saveDetails} className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="text-xs font-medium text-ink/60">Name</span>
+                  <input
+                    value={detailsDraft.name}
+                    onChange={(e) => setDetailsDraft({ ...detailsDraft, name: e.target.value })}
+                    className="focus-ring mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs font-medium text-ink/60">Email</span>
+                  <input
+                    type="email"
+                    value={detailsDraft.email}
+                    onChange={(e) => setDetailsDraft({ ...detailsDraft, email: e.target.value })}
+                    className="focus-ring mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                  />
+                </label>
+                {detailsError && (
+                  <p className="sm:col-span-2 text-sm text-red-700">{detailsError}</p>
+                )}
+                <div className="sm:col-span-2 flex gap-2">
+                  <button
+                    type="submit"
+                    disabled={savingDetails}
+                    className="focus-ring rounded-md bg-teal text-white text-sm font-medium px-4 py-2 hover:bg-teal-dark transition-colors disabled:opacity-40"
+                  >
+                    {savingDetails ? "Saving…" : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingDetails(false);
+                      setDetailsError(null);
+                      if (client) setDetailsDraft({ name: client.name, email: client.email });
+                    }}
+                    className="focus-ring rounded-md border border-line text-ink/60 text-sm px-4 py-2 hover:text-ink"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-sm">
+                <p className="font-medium text-ink">{client.name}</p>
+                <p className="text-ink/60">{client.email}</p>
+              </div>
+            )}
+          </section>
           <section className="bg-panel border border-line rounded-card p-6 mb-6">
             <h2 className="font-display text-lg mb-4">Next session</h2>
             <form onSubmit={saveSchedule} className="grid gap-4 sm:grid-cols-2">
