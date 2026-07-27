@@ -10,10 +10,25 @@ type OrgBilling = {
   subscriptionStatus: string | null;
 };
 
-const TIERS: { key: "starter" | "growth" | "scale"; label: string; price: string; blurb: string }[] = [
-  { key: "starter", label: "Starter", price: "$29/mo", blurb: "Up to ~15 active clients, 1 coach seat" },
-  { key: "growth", label: "Growth", price: "$59/mo", blurb: "Up to ~50 active clients, multiple coach seats, custom domain" },
-  { key: "scale", label: "Scale", price: "$99+/mo", blurb: "Unlimited clients, priority support" },
+const TIERS: { key: "starter" | "growth" | "scale"; label: string; price: string; features: string[] }[] = [
+  {
+    key: "starter",
+    label: "Starter",
+    price: "$29/mo",
+    features: ["Up to 15 active clients", "1 coach seat", "Session tracking & reminders", "Projects & task lists"],
+  },
+  {
+    key: "growth",
+    label: "Growth",
+    price: "$59/mo",
+    features: ["Up to 50 active clients", "Up to 5 coach seats", "Custom domain included", "Everything in Starter"],
+  },
+  {
+    key: "scale",
+    label: "Scale",
+    price: "$99+/mo",
+    features: ["Unlimited clients", "Unlimited coach seats", "Custom domain included", "Priority support"],
+  },
 ];
 
 function BillingContent() {
@@ -101,7 +116,14 @@ function BillingContent() {
               <div key={t.key} className="bg-panel border border-line rounded-card p-5 flex flex-col">
                 <h3 className="font-display text-lg text-ink">{t.label}</h3>
                 <p className="text-2xl font-display text-ink mt-1">{t.price}</p>
-                <p className="text-xs text-ink/50 mt-2 mb-4 flex-1">{t.blurb}</p>
+                <ul className="text-xs text-ink/60 mt-2 mb-4 flex-1 space-y-1">
+                  {t.features.map((f) => (
+                    <li key={f} className="flex items-start gap-1.5">
+                      <span className="text-teal">-</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
                 <button
                   onClick={() => upgrade(t.key)}
                   disabled={loadingTier !== null}

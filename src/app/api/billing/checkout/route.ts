@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     line_items: [{ price: PRICE_IDS[tier as PlanTier], quantity: 1 }],
     success_url: `${process.env.NEXTAUTH_URL}/admin/billing?success=true`,
     cancel_url: `${process.env.NEXTAUTH_URL}/admin/billing?canceled=true`,
-    metadata: { organizationId: org.id },
+    metadata: { organizationId: org.id, tier },
   });
 
   return NextResponse.json({ url: checkoutSession.url });

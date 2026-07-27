@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
           data: {
             stripeSubscriptionId: session.subscription as string,
             plan: "paid",
+            tier: session.metadata?.tier || "starter",
             subscriptionStatus: "active",
           },
         });

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/sanitize";
+import { getLimitsForOrg } from "@/lib/planLimits";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -88,6 +89,22 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
   if (existing) {
     return NextResponse.json({ error: "That email is already in use" }, { status: 409 });
+  }
+
+  const org = await prisma.organization.findUnique({ where: { id: session.user.organizationId } });
+  if (org) {
+    const { maxClients } = getLimitsForOrg(org);
+    if (maxClients !== Infinity) {
+      const clientCount = await prisma.user.count({
+        where: { role: "CLIENT", organizationId: org.id, archivedAt: null },
+      });
+      if (clientCount >= maxClients) {
+        return NextResponse.json(
+          { error: `Your plan allows up to ${maxClients} active clients. Upgrade to add more.` },
+          { status: 403 }
+        );
+      }
+    }
   }
 
   const passwordHash = await bcrypt.hash(password, 10);

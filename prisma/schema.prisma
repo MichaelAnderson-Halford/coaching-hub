@@ -292,6 +292,7 @@ model Organization {
   stripeCustomerId   String?   @unique
   stripeSubscriptionId String? @unique
   subscriptionStatus String?
+  tier               String?
   createdAt    DateTime @default(now())
 
   users User[]

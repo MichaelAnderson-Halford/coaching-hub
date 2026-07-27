@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getLimitsForOrg } from "@/lib/planLimits";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -33,6 +34,22 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
   if (existing) {
     return NextResponse.json({ error: "That email is already in use" }, { status: 409 });
+  }
+
+  const org = await prisma.organization.findUnique({ where: { id: session.user.organizationId } });
+  if (org) {
+    const { maxCoaches } = getLimitsForOrg(org);
+    if (maxCoaches !== Infinity) {
+      const coachCount = await prisma.user.count({
+        where: { role: "ADMIN", organizationId: org.id },
+      });
+      if (coachCount >= maxCoaches) {
+        return NextResponse.json(
+          { error: `Your plan allows up to ${maxCoaches} coach seat(s). Upgrade to add more.` },
+          { status: 403 }
+        );
+      }
+    }
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
