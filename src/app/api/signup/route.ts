@@ -73,6 +73,10 @@ export async function POST(req: NextRequest) {
     select: { id: true, name: true, email: true },
   });
 
+  // Fire-and-forget: don't make the person wait on DNS/Vercel API calls
+  // to finish signing up. If this fails, a superadmin can always add the
+  // subdomain manually as a fallback.
+
   return NextResponse.json(
     { organization: { id: org.id, slug: org.slug }, admin },
     { status: 201 }

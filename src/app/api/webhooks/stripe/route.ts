@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
+import { provisionSubdomain } from "@/lib/provisionDomain";
 import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       const session = event.data.object as Stripe.Checkout.Session;
       const organizationId = session.metadata?.organizationId;
       if (organizationId && session.subscription) {
-        await prisma.organization.update({
+        const org = await prisma.organization.update({
           where: { id: organizationId },
           data: {
             stripeSubscriptionId: session.subscription as string,
@@ -32,6 +33,13 @@ export async function POST(req: NextRequest) {
             subscriptionStatus: "active",
           },
         });
+
+        // Only now — once payment has actually succeeded — do we give
+        // this organization its own subdomain. Trial orgs use the bare
+        // base domain with no subdomain of their own.
+        provisionSubdomain(org.slug).catch((err) =>
+          console.error("provisionSubdomain failed:", err)
+        );
       }
       break;
     }
