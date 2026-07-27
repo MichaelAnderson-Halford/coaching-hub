@@ -39,6 +39,7 @@ model User {
   // briefing) — refreshed automatically alongside the AI briefing.
   clientMessage          String?   @db.Text
   clientMessageUpdatedAt DateTime?
+  lastSeenAt             DateTime?
 
   businesses     Business[]
   notesAsClient  Note[]     @relation("ClientNotes")

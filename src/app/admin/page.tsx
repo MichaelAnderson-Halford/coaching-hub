@@ -11,6 +11,7 @@ type ClientSummary = {
   email: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
+  lastSeenAt: string | null;
 };
 
 type AdminSummary = {
@@ -347,6 +348,10 @@ export default function AdminPage() {
                   {c.nextMeetingAt
                     ? new Date(c.nextMeetingAt).toLocaleString()
                     : "not scheduled"}
+                </p>
+                <p className="mt-1 text-xs font-mono text-ink/40">
+                  Last online:{" "}
+                  {c.lastSeenAt ? new Date(c.lastSeenAt).toLocaleString() : "never"}
                 </p>
               </Link>
             </li>

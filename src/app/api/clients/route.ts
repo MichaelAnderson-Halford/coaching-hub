@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
       email: true,
       nextMeetingAt: true,
       zoomLink: true,
+      lastSeenAt: true,
       archivedAt: true,
     },
   });

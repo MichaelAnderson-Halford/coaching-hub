@@ -55,6 +55,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     load();
+    fetch("/api/heartbeat", { method: "POST" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
