@@ -29,7 +29,11 @@ export async function GET() {
         where: { role: "CLIENT" },
         select: {
           id: true,
-          sessions: { orderBy: { date: "desc" }, take: 1, select: { date: true } },
+          clientAccount: {
+            select: {
+              sessions: { orderBy: { date: "desc" }, take: 1, select: { date: true } },
+            },
+          },
         },
       },
     },
@@ -38,7 +42,7 @@ export async function GET() {
   const rows = orgs.map((org: any) => {
     const clientCount = org.users.length;
     const lastSessionDates = org.users
-      .flatMap((u: any) => u.sessions.map((s: any) => s.date))
+      .flatMap((u: any) => (u.clientAccount?.sessions || []).map((s: any) => s.date))
       .filter(Boolean);
     const lastActivityAt =
       lastSessionDates.length > 0

@@ -20,3 +20,25 @@ export async function checkOrgAccess(session: any, clientId: string): Promise<bo
   if (session.user.role === "ADMIN" || session.user.role === "SUPERADMIN") return true;
   return session.user.id === clientId;
 }
+
+// Same as checkOrgAccess, but for checking access via a Business's
+// linked ClientAccount (used by metrics/projects routes, which reach
+// the client through a business rather than a direct clientId).
+export async function checkBusinessOrgAccess(session: any, businessId: string): Promise<boolean> {
+  if (!session?.user) return false;
+
+  const business = await prisma.business.findUnique({
+    where: { id: businessId },
+    select: {
+      clientAccount: {
+        select: { organizationId: true, owners: { select: { id: true } } },
+      },
+    },
+  });
+  if (!business || !business.clientAccount) return false;
+  if (business.clientAccount.organizationId !== session.user.organizationId) return false;
+
+  if (session.user.role === "ADMIN" || session.user.role === "SUPERADMIN") return true;
+
+  return business.clientAccount.owners.some((o: { id: string }) => o.id === session.user.id);
+}

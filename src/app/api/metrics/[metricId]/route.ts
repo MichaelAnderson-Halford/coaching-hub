@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { checkOrgAccess } from "@/lib/access";
+import { checkBusinessOrgAccess } from "@/lib/access";
 
 export async function PATCH(
   req: NextRequest,
@@ -14,8 +14,7 @@ export async function PATCH(
   if (!metric) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
-  const business = await prisma.business.findUnique({ where: { id: metric.businessId } });
-  if (!business || !(await checkOrgAccess(session, business.clientId))) {
+  if (!(await checkBusinessOrgAccess(session, metric.businessId))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
@@ -39,8 +38,7 @@ export async function DELETE(
   if (!metric) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
-  const business = await prisma.business.findUnique({ where: { id: metric.businessId } });
-  if (!business || !(await checkOrgAccess(session, business.clientId))) {
+  if (!(await checkBusinessOrgAccess(session, metric.businessId))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 

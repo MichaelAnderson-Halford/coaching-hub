@@ -24,7 +24,7 @@ export async function GET() {
     threadMessages: { createdAt: Date }[];
   };
 
-  const clients: ClientRow[] = await prisma.user.findMany({
+  const rawClients = await prisma.user.findMany({
     where: { role: "CLIENT", archivedAt: null, organizationId: orgId },
     select: {
       id: true,
@@ -32,10 +32,24 @@ export async function GET() {
       nextMeetingAt: true,
       zoomLink: true,
       notesAsClient: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
-      wins: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
       threadMessages: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+      clientAccount: {
+        select: {
+          wins: { orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } },
+        },
+      },
     },
   });
+
+  const clients: ClientRow[] = rawClients.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    nextMeetingAt: c.nextMeetingAt,
+    zoomLink: c.zoomLink,
+    notesAsClient: c.notesAsClient,
+    threadMessages: c.threadMessages,
+    wins: c.clientAccount?.wins || [],
+  }));
 
   const upcomingSessions = clients
     .filter((c: ClientRow) => c.nextMeetingAt && new Date(c.nextMeetingAt).getTime() >= now)
@@ -70,10 +84,10 @@ export async function GET() {
       include: { client: { select: { name: true } }, author: { select: { name: true } } },
     }),
     prisma.win.findMany({
-      where: { client: { organizationId: orgId } },
+      where: { clientAccount: { organizationId: orgId } },
       orderBy: { createdAt: "desc" },
       take: 15,
-      include: { client: { select: { name: true } } },
+      include: { clientAccount: { include: { owners: { select: { name: true, id: true } } } } },
     }),
     prisma.message.findMany({
       where: { client: { organizationId: orgId } },
@@ -96,8 +110,8 @@ export async function GET() {
     ...recentWins.map((w: any) => ({
       type: "win" as const,
       id: w.id,
-      clientId: w.clientId,
-      clientName: w.client.name,
+      clientId: w.clientAccount?.owners?.[0]?.id || w.clientAccountId,
+      clientName: w.clientAccount?.owners?.[0]?.name || "Unknown",
       createdAt: w.createdAt,
       summary: "Win logged",
       content: w.content,

@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendProjectReminder } from "@/lib/notify";
 
-// A project is reminder-worthy if it's overdue, or due within this many
-// hours from now.
 const DUE_SOON_HOURS = 48;
 
 export async function GET(req: NextRequest) {
@@ -21,12 +19,16 @@ export async function GET(req: NextRequest) {
     select: {
       id: true,
       name: true,
-      homeworkItems: {
-        where: {
-          completed: false,
-          dueDate: { lte: dueSoonCutoff },
+      clientAccount: {
+        select: {
+          homeworkItems: {
+            where: {
+              completed: false,
+              dueDate: { lte: dueSoonCutoff },
+            },
+            select: { title: true, dueDate: true },
+          },
         },
-        select: { title: true, dueDate: true },
       },
     },
   });
@@ -34,11 +36,12 @@ export async function GET(req: NextRequest) {
   let sent = 0;
 
   for (const client of clients) {
-    if (client.homeworkItems.length === 0) continue;
+    const homeworkItems = client.clientAccount?.homeworkItems || [];
+    if (homeworkItems.length === 0) continue;
 
-    const items = client.homeworkItems
-      .filter((h) => h.dueDate)
-      .map((h) => ({
+    const items = homeworkItems
+      .filter((h: any) => h.dueDate)
+      .map((h: any) => ({
         title: h.title,
         dueDate: h.dueDate as Date,
         overdue: (h.dueDate as Date).getTime() < now.getTime(),

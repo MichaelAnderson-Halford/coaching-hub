@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { checkOrgAccess } from "@/lib/access";
+import { checkBusinessOrgAccess } from "@/lib/access";
 
 async function getProjectAndCheckAccess(session: any, projectId: string) {
   const project = await prisma.project.findUnique({
@@ -10,7 +10,7 @@ async function getProjectAndCheckAccess(session: any, projectId: string) {
     include: { business: true },
   });
   if (!project) return null;
-  const allowed = await checkOrgAccess(session, project.business.clientId);
+  const allowed = await checkBusinessOrgAccess(session, project.businessId);
   return allowed ? project : null;
 }
 
@@ -46,8 +46,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Not authorized" }, { status: 403 });
   }
 
-  // Deleting a project doesn't delete its tasks — they just fall back to
-  // "General" (no project), same as when a task's project is deleted.
   await prisma.project.delete({ where: { id: params.projectId } });
   return NextResponse.json({ deleted: true });
 }

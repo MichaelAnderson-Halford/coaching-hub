@@ -23,32 +23,22 @@ model User {
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
 
-  // Fields only relevant when role = CLIENT — shared across all of a
-  // client's businesses, since it's one coaching relationship / one call.
-  nextMeetingAt DateTime?
-  zoomLink      String?
-  archivedAt    DateTime?
-  ninetyDayPlan String?   @db.Text
-
-  // Tracks which nextMeetingAt value a reminder email was last sent for,
-  // so the daily cron job doesn't send duplicate reminders for the same
-  // session.
-  reminderSentForMeetingAt DateTime?
-
-  // A warm, personal note written directly TO the client (not the coach
-  // briefing) — refreshed automatically alongside the AI briefing.
-  clientMessage          String?   @db.Text
-  clientMessageUpdatedAt DateTime?
   lastSeenAt             DateTime?
 
-  businesses     Business[]
+  nextMeetingAt DateTime?
+  zoomLink      String?
+  reminderSentForMeetingAt DateTime?
+  thirtyMinReminderSentAt  DateTime?
+  ninetyDayPlan String?   @db.Text
+  archivedAt    DateTime?
+  clientMessage          String?   @db.Text
+  clientMessageUpdatedAt DateTime?
+
+  clientAccount   ClientAccount? @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+  clientAccountId String?
+
   notesAsClient  Note[]     @relation("ClientNotes")
   notesAsAuthor  Note[]     @relation("AuthorNotes")
-  wins           Win[]
-  resources      Resource[]
-  homeworkItems  HomeworkItem[]
-  sessions       Session[]
-  plan           Plan?
   sentMessages   Message[]  @relation("SentMessages")
   threadMessages Message[]  @relation("ClientThread")
   passwordResetTokens PasswordResetToken[]
@@ -67,8 +57,9 @@ model Business {
   insightUpdatedAt DateTime?
   createdAt        DateTime  @default(now())
 
-  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String
+  clientAccount   ClientAccount?  @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+  clientAccountId String?
+  clientId String?
 
   metrics       Metric[]
   homeworkItems HomeworkItem[]
@@ -95,8 +86,9 @@ model Win {
   content   String
   createdAt DateTime @default(now())
 
-  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String
+  clientAccount   ClientAccount?  @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+  clientAccountId String?
+  clientId String?
 }
 
 model Resource {
@@ -106,8 +98,9 @@ model Resource {
   description String?
   createdAt   DateTime @default(now())
 
-  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String
+  clientAccount   ClientAccount?  @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+  clientAccountId String?
+  clientId String?
 }
 
 // A structured record of an actual coaching call — separate from the
@@ -121,8 +114,9 @@ model Session {
   summary         String   @db.Text
   createdAt       DateTime @default(now())
 
-  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String
+  clientAccount   ClientAccount?  @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+  clientAccountId String?
+  clientId String?
 }
 
 // Small between-session commitments — either the coach or the client can
@@ -137,8 +131,9 @@ model HomeworkItem {
   completedAt DateTime?
   createdAt   DateTime  @default(now())
 
-  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String
+  clientAccount   ClientAccount?  @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+  clientAccountId String?
+  clientId String?
 
   business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
   businessId String?
@@ -222,8 +217,9 @@ model Plan {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  client   User   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  clientId String @unique
+  clientAccount   ClientAccount?  @relation(fields: [clientAccountId], references: [id], onDelete: SetNull)
+  clientAccountId String? @unique
+  clientId String? @unique
 
   sections PlanSection[]
 }
@@ -296,4 +292,30 @@ model Organization {
   createdAt    DateTime @default(now())
 
   users User[]
+  clientAccounts ClientAccount[]
+}
+
+// The actual client/business relationship — shared by every owner who
+// can log in to see it. Holds everything that isn't specific to one
+// individual login (their own notes/messages stay on User).
+model ClientAccount {
+  id           String    @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  nextMeetingAt DateTime?
+  zoomLink      String?
+  archivedAt    DateTime?
+  ninetyDayPlan String?   @db.Text
+  reminderSentForMeetingAt DateTime?
+  clientMessage          String?   @db.Text
+  clientMessageUpdatedAt DateTime?
+  createdAt DateTime @default(now())
+
+  owners        User[]
+  businesses    Business[]
+  resources     Resource[]
+  wins          Win[]
+  sessions      Session[]
+  plan          Plan?
+  homeworkItems HomeworkItem[]
 }

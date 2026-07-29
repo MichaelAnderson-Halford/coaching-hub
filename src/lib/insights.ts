@@ -8,24 +8,32 @@ export async function refreshBusinessInsight(businessId: string) {
     where: { id: businessId },
     include: {
       metrics: { include: { entries: { orderBy: { recordedAt: "desc" }, take: 10 } } },
-      client: {
+      clientAccount: {
         select: {
-          name: true,
-          ninetyDayPlan: true,
-          notesAsClient: {
-            orderBy: { createdAt: "desc" },
-            take: 15,
-            include: { author: { select: { name: true } } },
-          },
           wins: { orderBy: { createdAt: "desc" }, take: 10 },
+          owners: {
+            take: 1,
+            select: {
+              name: true,
+              ninetyDayPlan: true,
+              notesAsClient: {
+                orderBy: { createdAt: "desc" },
+                take: 15,
+                include: { author: { select: { name: true } } },
+              },
+            },
+          },
         },
       },
     },
   });
-  if (!business) return;
+  if (!business || !business.clientAccount) return;
+
+  const owner = business.clientAccount.owners[0];
+  if (!owner) return;
 
   const notesText =
-    business.client.notesAsClient
+    owner.notesAsClient
       .map(
         (n: { createdAt: Date; content: string }) =>
           `- (${n.createdAt.toISOString().slice(0, 10)}) ${n.content
@@ -35,7 +43,7 @@ export async function refreshBusinessInsight(businessId: string) {
       .join("\n") || "None yet.";
 
   const winsText =
-    business.client.wins.map((w: { content: string }) => `- ${w.content}`).join("\n") ||
+    business.clientAccount.wins.map((w: { content: string }) => `- ${w.content}`).join("\n") ||
     "None yet.";
 
   const metricsText =
@@ -47,9 +55,9 @@ export async function refreshBusinessInsight(businessId: string) {
       })
       .join("\n") || "No metrics tracked yet.";
 
-  const planText = business.client.ninetyDayPlan?.trim() || "No 90-day plan written yet.";
+  const planText = owner.ninetyDayPlan?.trim() || "No 90-day plan written yet.";
 
-  const prompt = `You are helping a business coach prepare for their next session with a client named ${business.client.name}, specifically regarding their business "${business.name}".
+  const prompt = `You are helping a business coach prepare for their next session with a client named ${owner.name}, specifically regarding their business "${business.name}".
 
 Recent coaching notes (shared across all of this client's businesses):
 ${notesText}
@@ -63,7 +71,7 @@ ${metricsText}
 The client's overall 90-day plan (shared across all their businesses):
 ${planText}
 
-Write a thorough briefing (around 400 words) covering: (1) overall progress on this specific business, (2) any risks or things stalling, (3) opportunities or wins to build on, (4) a couple of suggested focus areas for the next session. Write directly to the coach, in plain prose, no headers or bullet lists.`;
+Write a thorough briefing (around 400 words) covering: (1) overall progress on this specific business, (2) any risks or things stalling, (3) opportunities or wins to build on, (4) a couple of suggested focus areas for the next session. Write directly to the coach, in plain prose, no headers or bullet points, as if you're catching them up before a call.`;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -95,18 +103,8 @@ Write a thorough briefing (around 400 words) covering: (1) overall progress on t
   }
 }
 
-// Refreshes every business belonging to a client — used after something
-// shared (a note or a win) changes, since it could affect any of them.
-export async function refreshAllBusinessInsights(clientId: string) {
-  const businesses = await prisma.business.findMany({
-    where: { clientId },
-    select: { id: true },
-  });
-  await Promise.all(businesses.map((b: { id: string }) => refreshBusinessInsight(b.id)));
-}
-
-// A warm, personal note written directly TO the client — separate from the
-// coach-facing briefing above. Shown on the client's own dashboard.
+// Refreshes the short, warm personal note shown directly to the client,
+// as opposed to the coach-facing briefing above. Shown on the client's own dashboard.
 export async function refreshClientMessage(clientId: string) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return;
@@ -115,21 +113,25 @@ export async function refreshClientMessage(clientId: string) {
     where: { id: clientId },
     select: {
       name: true,
-      wins: { orderBy: { createdAt: "desc" }, take: 5 },
       notesAsClient: {
         where: { isPrivate: false },
         orderBy: { createdAt: "desc" },
         take: 5,
       },
-      businesses: {
+      clientAccount: {
         select: {
-          name: true,
-          metrics: {
+          wins: { orderBy: { createdAt: "desc" }, take: 5 },
+          businesses: {
             select: {
               name: true,
-              unit: true,
-              target: true,
-              entries: { orderBy: { recordedAt: "desc" }, take: 3, select: { value: true } },
+              metrics: {
+                select: {
+                  name: true,
+                  unit: true,
+                  target: true,
+                  entries: { orderBy: { recordedAt: "desc" }, take: 3, select: { value: true } },
+                },
+              },
             },
           },
         },
@@ -138,8 +140,11 @@ export async function refreshClientMessage(clientId: string) {
   });
   if (!client) return;
 
+  const wins = client.clientAccount?.wins || [];
+  const businesses = client.clientAccount?.businesses || [];
+
   const winsText =
-    client.wins.map((w: { content: string }) => `- ${w.content}`).join("\n") || "None logged yet.";
+    wins.map((w: { content: string }) => `- ${w.content}`).join("\n") || "None logged yet.";
 
   const notesText =
     client.notesAsClient
@@ -147,7 +152,7 @@ export async function refreshClientMessage(clientId: string) {
       .join("\n") || "None yet.";
 
   const metricsText =
-    client.businesses
+    businesses
       .flatMap((b: { name: string; metrics: { name: string; unit: string | null; target: number | null; entries: { value: number }[] }[] }) =>
         b.metrics.map((m) => {
           const latest = m.entries[0];
@@ -168,7 +173,7 @@ ${notesText}
 Their tracked metrics:
 ${metricsText}
 
-Write a genuinely warm, specific, encouraging note (under 120 words) that references something real and specific from the above — not generic cheerleading. If there's nothing much logged yet, keep it welcoming and forward-looking instead of forcing false specifics. Sign off as "— Your coaching team". No headers, just the note.`;
+Write a genuinely warm, specific, encouraging note (under 120 words) that references something real and specific from the above — not generic cheerleading. If there's nothing much logged yet, keep it welcoming and forward-looking instead of forcing false specifics. Sign off as "— Your coaching team".`;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -202,5 +207,13 @@ Write a genuinely warm, specific, encouraging note (under 120 words) that refere
 // Convenience wrapper — refreshes both the coach-facing briefings and the
 // client-facing personal note in one call.
 export async function refreshAllInsights(clientId: string) {
-  await Promise.all([refreshAllBusinessInsights(clientId), refreshClientMessage(clientId)]);
+  const client = await prisma.user.findUnique({
+    where: { id: clientId },
+    select: { clientAccount: { select: { businesses: { select: { id: true } } } } },
+  });
+  const businessIds = client?.clientAccount?.businesses.map((b: { id: string }) => b.id) || [];
+  await Promise.all([
+    ...businessIds.map((id: string) => refreshBusinessInsight(id)),
+    refreshClientMessage(clientId),
+  ]);
 }

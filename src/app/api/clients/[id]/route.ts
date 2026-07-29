@@ -31,37 +31,56 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         orderBy: { createdAt: "desc" },
         include: { author: { select: { name: true } } },
       },
-      wins: { orderBy: { createdAt: "desc" } },
-      resources: { orderBy: { createdAt: "desc" } },
-      homeworkItems: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { createdAt: "asc" }] },
-      sessions: { orderBy: { sessionNumber: "desc" } },
-      businesses: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          name: true,
-          insight: true,
-          insightUpdatedAt: true,
-          metrics: {
-            orderBy: { createdAt: "asc" },
-            include: { entries: { orderBy: { recordedAt: "asc" } } },
-          },
-          projects: {
-            orderBy: { createdAt: "asc" },
-            select: { id: true, name: true },
-          },
-        },
-      },
       threadMessages: {
         orderBy: { createdAt: "desc" },
         select: { id: true, content: true, createdAt: true, readByCoach: true, senderId: true },
       },
-      plan: { select: { id: true } },
+      clientAccount: {
+        select: {
+          wins: { orderBy: { createdAt: "desc" } },
+          resources: { orderBy: { createdAt: "desc" } },
+          homeworkItems: { orderBy: [{ completed: "asc" }, { dueDate: "asc" }, { createdAt: "asc" }] },
+          sessions: { orderBy: { sessionNumber: "desc" } },
+          businesses: {
+            orderBy: { createdAt: "asc" },
+            select: {
+              id: true,
+              name: true,
+              insight: true,
+              insightUpdatedAt: true,
+              metrics: {
+                orderBy: { createdAt: "asc" },
+                include: { entries: { orderBy: { recordedAt: "asc" } } },
+              },
+              projects: {
+                orderBy: { createdAt: "asc" },
+                select: { id: true, name: true },
+              },
+            },
+          },
+          plan: { select: { id: true } },
+        },
+      },
     },
   });
 
   if (!client) return NextResponse.json({ error: "Client not found" }, { status: 404 });
-  return NextResponse.json(client);
+
+  // Flatten clientAccount's fields onto the response so the frontend
+  // shape stays exactly the same as before this migration — no page
+  // changes needed tonight.
+  const { clientAccount, ...rest } = client;
+  const flattened = {
+    ...rest,
+    wins: clientAccount?.wins || [],
+    resources: clientAccount?.resources || [],
+    homeworkItems: clientAccount?.homeworkItems || [],
+    sessions: clientAccount?.sessions || [],
+    businesses: clientAccount?.businesses || [],
+    plan: clientAccount?.plan || null,
+  };
+
+  return NextResponse.json(flattened);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
