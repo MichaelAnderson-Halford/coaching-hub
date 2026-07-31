@@ -53,7 +53,7 @@ type ClientDetail = {
   plan: { id: string } | null;
 };
 
-const TABS = ["Overview", "Plan", "Businesses", "Timeline", "Projects"] as const;
+const TABS = ["Overview", "Plan", "Businesses", "Timeline", "Projects", "Call Notes"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AdminClientPage({ params }: { params: { clientId: string } }) {
@@ -645,6 +645,35 @@ export default function AdminClientPage({ params }: { params: { clientId: string
           businesses={client.businesses}
           onChanged={load}
         />
+      )}
+
+      {activeTab === "Call Notes" && (
+        <section className="bg-panel border border-line rounded-card p-6 mb-6">
+          <h2 className="font-display text-lg mb-4">Call Notes</h2>
+          {client.notesAsClient.filter((n: any) => n.content.includes("Auto-added from Zoom")).length === 0 ? (
+            <div className="text-center py-6">
+              <p className="font-medium text-ink">No call notes yet</p>
+              <p className="text-xs text-ink/50 mt-1">
+                These will appear automatically after each Zoom call with an AI summary.
+              </p>
+            </div>
+          ) : (
+            <ul className="space-y-4">
+              {client.notesAsClient
+                .filter((n: any) => n.content.includes("Auto-added from Zoom"))
+                .slice()
+                .reverse()
+                .map((n: any) => (
+                  <li key={n.id} className="border-l-2 border-teal-light pl-4">
+                    <p className="text-xs text-ink/40 font-mono mb-1">
+                      {new Date(n.createdAt).toLocaleString()}
+                    </p>
+                    <p className="text-sm whitespace-pre-wrap">{n.content}</p>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </section>
       )}
     </main>
   );

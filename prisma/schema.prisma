@@ -323,3 +323,15 @@ model ClientAccount {
   plan          Plan?
   homeworkItems HomeworkItem[]
 }
+
+// Tracks which Zoom meeting summaries we've already processed, so a
+// duplicate webhook delivery (which Zoom does occasionally retry) never
+// creates the same call note twice.
+model ProcessedZoomSummary {
+  id        String   @id @default(cuid())
+  meetingId String
+  startTime String
+  createdAt DateTime @default(now())
+
+  @@unique([meetingId, startTime])
+}

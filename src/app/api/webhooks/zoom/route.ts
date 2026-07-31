@@ -3,8 +3,6 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { refreshAllInsights } from "@/lib/insights";
 
-// Zoom meeting links look like https://zoom.us/j/1234567890 — pull the
-// numeric meeting ID out so we can match it against the webhook payload.
 function extractMeetingId(zoomLink: string | null): string | null {
   if (!zoomLink) return null;
   const match = zoomLink.match(/\/j\/(\d+)/);
@@ -26,8 +24,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Zoom's one-time endpoint validation handshake when you first add the
-  // webhook URL in the Zoom App dashboard.
   if (body.event === "endpoint.url_validation") {
     const plainToken = body.payload?.plainToken;
     const encryptedToken = crypto
@@ -37,7 +33,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ plainToken, encryptedToken });
   }
 
-  // Verify this request genuinely came from Zoom before trusting it.
   const timestamp = req.headers.get("x-zm-request-timestamp");
   const signature = req.headers.get("x-zm-signature");
   const message = `v0:${timestamp}:${rawBody}`;
@@ -53,6 +48,21 @@ export async function POST(req: NextRequest) {
 
     if (obj) {
       const meetingId = String(obj.meeting_id || obj.id || "");
+      // Zoom occasionally redelivers the same webhook event (e.g. if our
+      // response is slow). Use the meeting ID + start time as a unique
+      // key so a retried delivery never creates a duplicate call note.
+      const startTime = String(obj.start_time || obj.uuid || "");
+
+      try {
+        await prisma.processedZoomSummary.create({
+          data: { meetingId, startTime },
+        });
+      } catch {
+        // Unique constraint violation means we've already processed this
+        // exact meeting summary — safely stop here.
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+
       const clients = await prisma.user.findMany({ where: { role: "CLIENT" } });
       const matched = clients.find(
         (c: { zoomLink: string | null }) => extractMeetingId(c.zoomLink) === meetingId

@@ -71,7 +71,7 @@ ${metricsText}
 The client's overall 90-day plan (shared across all their businesses):
 ${planText}
 
-Write a thorough briefing (around 400 words) covering: (1) overall progress on this specific business, (2) any risks or things stalling, (3) opportunities or wins to build on, (4) a couple of suggested focus areas for the next session. Write directly to the coach, in plain prose, no headers or bullet points, as if you're catching them up before a call.`;
+Write a factual summary (around 300 words) of what has actually happened recently — real developments, decisions, and concrete updates from the notes and conversations above, not generic coaching advice or speculative recommendations. Leave out anything irrelevant to the business itself (personal chit-chat, small talk, unrelated topics). Write directly to the coach, in plain prose, no headers or bullet points, as if you're catching them up on what has actually happened since the last check-in.`;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {

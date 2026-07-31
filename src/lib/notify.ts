@@ -67,7 +67,14 @@ export async function notifyNewWin(clientId: string, creatorId: string, content:
   );
 }
 
-export async function sendSessionReminder(clientId: string, clientName: string, meetingAt: Date, zoomLink: string | null) {
+export async function sendSessionReminder(
+  clientId: string,
+  clientName: string,
+  meetingAt: Date,
+  zoomLink: string | null,
+  zoomPassword?: string | null,
+  zoomMeetingId?: string | null
+) {
   const client = await prisma.user.findUnique({
     where: { id: clientId },
     select: { email: true, organizationId: true },
@@ -85,6 +92,13 @@ export async function sendSessionReminder(clientId: string, clientName: string, 
     minute: "2-digit",
   });
 
+  const detailsLine =
+    zoomMeetingId || zoomPassword
+      ? `<p>${zoomMeetingId ? `Meeting ID: <strong>${escapeHtml(zoomMeetingId)}</strong>` : ""}${
+          zoomMeetingId && zoomPassword ? " &middot; " : ""
+        }${zoomPassword ? `Passcode: <strong>${escapeHtml(zoomPassword)}</strong>` : ""}</p>`
+      : "";
+
   await Promise.all(
     recipients.map((email) =>
       sendEmail({
@@ -92,7 +106,7 @@ export async function sendSessionReminder(clientId: string, clientName: string, 
         subject: `Upcoming session with ${safeName}`,
         html: `<p>Reminder: a coaching session with <strong>${safeName}</strong> is coming up on <strong>${when}</strong>.</p>${
           zoomLink ? `<p><a href="${zoomLink}">Join Zoom</a></p>` : ""
-        }`,
+        }${detailsLine}`,
       })
     )
   );

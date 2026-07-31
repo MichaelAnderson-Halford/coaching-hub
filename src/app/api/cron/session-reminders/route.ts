@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       archivedAt: null,
       nextMeetingAt: { gte: now, lte: in24Hours },
     },
-    select: { id: true, name: true, nextMeetingAt: true, zoomLink: true, reminderSentForMeetingAt: true },
+    select: { id: true, name: true, nextMeetingAt: true, zoomLink: true, zoomPassword: true, zoomMeetingId: true, reminderSentForMeetingAt: true },
   });
 
   let sent = 0;
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       continue;
     }
 
-    await sendSessionReminder(client.id, client.name, client.nextMeetingAt, client.zoomLink);
+    await sendSessionReminder(client.id, client.name, client.nextMeetingAt, client.zoomLink, client.zoomPassword, client.zoomMeetingId);
     await prisma.user.update({
       where: { id: client.id },
       data: { reminderSentForMeetingAt: client.nextMeetingAt },
