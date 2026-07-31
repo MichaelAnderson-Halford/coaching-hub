@@ -335,3 +335,16 @@ model ProcessedZoomSummary {
 
   @@unique([meetingId, startTime])
 }
+
+// A single row of editable marketing content shown on the main login
+// page, below the sign-in form. Only a SUPERADMIN can edit this, since
+// it's platform-wide, not specific to any one organization.
+model SiteSettings {
+  id             String   @id @default("singleton")
+  heroHeadline   String?
+  heroSubheadline String?
+  aboutText      String?  @db.Text
+  contactEmail   String?
+  contactPhone   String?
+  updatedAt      DateTime @updatedAt
+}

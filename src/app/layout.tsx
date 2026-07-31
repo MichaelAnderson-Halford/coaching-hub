@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Montserrat, IBM_Plex_Mono } from "next/font/google";
+import { Montserrat, IBM_Plex_Mono, Bricolage_Grotesque, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 
@@ -18,6 +18,15 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
   variable: "--font-mono",
 });
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-bricolage",
+});
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-instrument-serif",
+});
 
 export const metadata: Metadata = {
   title: "Provider Pro",
@@ -27,7 +36,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${montserratDisplay.variable} ${montserratBody.variable} ${plexMono.variable}`}>
+      <body className={`${montserratDisplay.variable} ${montserratBody.variable} ${plexMono.variable} ${bricolage.variable} ${instrumentSerif.variable}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

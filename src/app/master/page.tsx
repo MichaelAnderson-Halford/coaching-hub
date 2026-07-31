@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
@@ -74,6 +75,9 @@ export default function MasterPortalPage() {
           <h1 className="font-display text-3xl text-ink">Master Portal</h1>
           <p className="text-sm text-ink/60 mt-1">Every organization on the platform.</p>
         </div>
+        <Link href="/master/site-settings" className="focus-ring text-sm text-ink/50 hover:text-ink underline underline-offset-4 mr-4">
+          Website Content
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/" })}
           className="focus-ring text-sm text-ink/50 hover:text-ink underline underline-offset-4"
