@@ -67,6 +67,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
   const [winDraft, setWinDraft] = useState("");
   const [resourceDraft, setResourceDraft] = useState({ title: "", url: "", description: "" });
   const [zoomLink, setZoomLink] = useState("");
+  const [zoomPassword, setZoomPassword] = useState("");
+  const [zoomMeetingId, setZoomMeetingId] = useState("");
   const [nextMeetingAt, setNextMeetingAt] = useState("");
   const [editingDetails, setEditingDetails] = useState(false);
   const [detailsDraft, setDetailsDraft] = useState({ name: "", email: "" });
@@ -89,6 +91,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       const data = await res.json();
       setClient(data);
       setZoomLink(data.zoomLink || "");
+      setZoomPassword(data.zoomPassword || "");
+      setZoomMeetingId(data.zoomMeetingId || "");
       setNextMeetingAt(data.nextMeetingAt ? toLocalInput(data.nextMeetingAt) : "");
       setDetailsDraft({ name: data.name, email: data.email });
     }
@@ -127,6 +131,8 @@ export default function AdminClientPage({ params }: { params: { clientId: string
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         zoomLink,
+        zoomPassword,
+        zoomMeetingId,
         nextMeetingAt: nextMeetingAt ? new Date(nextMeetingAt).toISOString() : null,
       }),
     });
@@ -404,6 +410,24 @@ export default function AdminClientPage({ params }: { params: { clientId: string
                     </span>
                   )}
                 </p>
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-ink/60">Zoom password</span>
+                <input
+                  value={zoomPassword}
+                  onChange={(e) => setZoomPassword(e.target.value)}
+                  placeholder="e.g. 123456"
+                  className="focus-ring mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs font-medium text-ink/60">Meeting ID (if different from link)</span>
+                <input
+                  value={zoomMeetingId}
+                  onChange={(e) => setZoomMeetingId(e.target.value)}
+                  placeholder="e.g. 812 3456 7890"
+                  className="focus-ring mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+                />
               </label>
               <label className="block">
                 <span className="text-xs font-medium text-ink/60">Date &amp; time</span>

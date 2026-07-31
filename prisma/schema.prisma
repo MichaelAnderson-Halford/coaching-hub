@@ -27,6 +27,8 @@ model User {
 
   nextMeetingAt DateTime?
   zoomLink      String?
+  zoomPassword  String?
+  zoomMeetingId String?
   reminderSentForMeetingAt DateTime?
   thirtyMinReminderSentAt  DateTime?
   ninetyDayPlan String?   @db.Text
@@ -304,6 +306,8 @@ model ClientAccount {
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   nextMeetingAt DateTime?
   zoomLink      String?
+  zoomPassword  String?
+  zoomMeetingId String?
   archivedAt    DateTime?
   ninetyDayPlan String?   @db.Text
   reminderSentForMeetingAt DateTime?

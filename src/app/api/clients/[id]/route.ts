@@ -22,6 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       createdAt: true,
       nextMeetingAt: true,
       zoomLink: true,
+      zoomPassword: true,
+      zoomMeetingId: true,
       archivedAt: true,
       ninetyDayPlan: true,
       clientMessage: true,
@@ -135,11 +137,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const data: {
     zoomLink?: string;
+    zoomPassword?: string;
+    zoomMeetingId?: string;
     nextMeetingAt?: Date | null;
     archivedAt?: Date | null;
     ninetyDayPlan?: string;
   } = {};
   if (typeof body.zoomLink === "string") data.zoomLink = body.zoomLink;
+  if (typeof body.zoomPassword === "string") data.zoomPassword = body.zoomPassword;
+  if (typeof body.zoomMeetingId === "string") data.zoomMeetingId = body.zoomMeetingId;
   if (body.nextMeetingAt === null) data.nextMeetingAt = null;
   else if (typeof body.nextMeetingAt === "string") data.nextMeetingAt = new Date(body.nextMeetingAt);
   if (typeof body.archived === "boolean") {
@@ -150,7 +156,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const updated = await prisma.user.update({
     where: { id: params.id },
     data,
-    select: { id: true, zoomLink: true, nextMeetingAt: true, archivedAt: true, ninetyDayPlan: true },
+    select: { id: true, zoomLink: true, zoomPassword: true, zoomMeetingId: true, nextMeetingAt: true, archivedAt: true, ninetyDayPlan: true },
   });
 
   if (typeof body.ninetyDayPlan === "string") {

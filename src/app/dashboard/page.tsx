@@ -29,6 +29,8 @@ type MyProfile = {
   createdAt: string;
   nextMeetingAt: string | null;
   zoomLink: string | null;
+  zoomPassword: string | null;
+  zoomMeetingId: string | null;
   ninetyDayPlan: string | null;
   clientMessage: string | null;
   clientMessageUpdatedAt: string | null;
@@ -126,6 +128,13 @@ export default function DashboardPage() {
               >
                 Join Zoom
               </a>
+            )}
+            {(profile.zoomMeetingId || profile.zoomPassword) && (
+              <p className="mt-2 text-xs font-mono text-ink/60">
+                {profile.zoomMeetingId && <span>Meeting ID: {profile.zoomMeetingId}</span>}
+                {profile.zoomMeetingId && profile.zoomPassword && <span> · </span>}
+                {profile.zoomPassword && <span>Passcode: {profile.zoomPassword}</span>}
+              </p>
             )}
           </>
         ) : (
