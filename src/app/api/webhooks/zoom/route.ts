@@ -64,9 +64,24 @@ export async function POST(req: NextRequest) {
       }
 
       const clients = await prisma.user.findMany({ where: { role: "CLIENT" } });
-      const matched = clients.find(
+      const allMatches = clients.filter(
         (c: { zoomLink: string | null }) => extractMeetingId(c.zoomLink) === meetingId
       );
+
+      if (allMatches.length > 1) {
+        // Multiple clients share this exact Zoom link (e.g. a reused
+        // personal meeting room) — we cannot safely tell which one this
+        // call was actually with, so skip auto-attaching rather than
+        // risk sending one client's call summary into another's
+        // portal. This must be resolved by giving each client their own
+        // unique meeting link.
+        console.error(
+          `Zoom webhook: meeting ID ${meetingId} matches multiple clients — skipping auto-note.`
+        );
+        return NextResponse.json({ received: true, skipped: "ambiguous meeting ID" });
+      }
+
+      const matched = allMatches[0];
 
       if (matched) {
         const author = await prisma.user.findFirst({ where: { role: "ADMIN", organizationId: matched.organizationId } });
